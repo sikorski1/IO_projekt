@@ -24,7 +24,7 @@
 
 | Use case | Nazwa biblioteki                  | link do dok/tutorial yt |
 | ------------- |:-------------------:| -----|
-| Tworzenie GUI | tkinter | [link](ptoszek.pl) |
+| Tworzenie GUI | tkinter | [link](https://ptoszek.pl) |
 | x | x | x |
 | x | x | x |
 | x | x | x |
