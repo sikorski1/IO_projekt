@@ -9,6 +9,7 @@ import numpy as np
 import speech_recognition as sr
 from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
 from pydub import AudioSegment
+from pydub.silence import split_on_silence
 
 class ScreenRecorderGUI:
     def __init__(self):
@@ -21,6 +22,9 @@ class ScreenRecorderGUI:
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
         self.fps = 30.0
+
+        #Transcription Recorder
+        self.r = sr.Recognizer()
 
         # Set up the GUI window
         self.root = tk.Tk()
@@ -52,7 +56,7 @@ class ScreenRecorderGUI:
         file_path_button = tk.Button(file_transcript_frame, text="Browse", command=self.select_file, bg="blue", fg="white", width=15)
         file_path_button.pack(side=tk.LEFT, padx=5)
 
-        transcript_button = tk.Button(file_transcript_frame, text="Transcript File", command=self.transcript_file, bg="blue", fg="white", width=15)
+        transcript_button = tk.Button(file_transcript_frame, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
         transcript_button.pack(side=tk.LEFT, padx=5)
 
         self.file_path_label = tk.Label(self.root, text="No file selected")
@@ -128,10 +132,13 @@ class ScreenRecorderGUI:
             cv2.imwrite("./data/"+name+"."+str(i)+".png",frame)
             i+=1
 
-    def transcript_file(self):
-        """Perform transcription of the selected audio file."""
+    def open_transcription_thread(self):
+        """Opens transcription thread"""
         if not self.file_path:
             self.file_path_label.config(text="No file selected")
+            return
+        if not self.selected_language:
+            self.file_path_label.config(text="No language provided")
             return
         if not self.file_path.lower().endswith('.wav'):
             self.file_path_label.config(text="Invalid file type. Please select a .wav file.")
@@ -139,26 +146,66 @@ class ScreenRecorderGUI:
         if self.transcription_thread and self.transcription_thread.is_alive():
             self.file_path_label.config(text="Transcription already in progress")
             return
-
+        self.file_path_label.config(text="Transcription started...")
         self.transcription_thread = threading.Thread(target=self.perform_transcription)
         self.transcription_thread.start()
 
     def perform_transcription(self):
         """Perform transcription on the selected audio file."""
         try:
-            file_name_without_extension = os.path.basename(self.file_path).rsplit('.', 1)[0]
-            r = sr.Recognizer()
-            with sr.AudioFile(self.file_path) as source:
-                audio_data = r.record(source)
-                print("Transcription started...")
-                start_time = time.time()
-                text = r.recognize_google(audio_data, language=self.selected_language)
+            filename = os.path.basename(self.file_path).rsplit('.', 1)[0]
 
-            print(f"File name: {file_name_without_extension}")
+            print("Transcription started...")
+            start_time = time.time()
+
+            transcription = self.get_full_file_transcription(self.file_path, filename)  
+
             elapsed_time = time.time() - start_time
-            print(f"Transcription completed in {elapsed_time:.2f} seconds")
-            print(f"Transcription: {text}")
+            print(f"Transcription completed in {elapsed_time:.2f} seconds") 
+            self.file_path_label.config(text=f"Transcription completed in {elapsed_time:.2f} seconds")
+            with open(f"./IO_projekt/recorder/audio_transcriptions/{filename}.txt", "w", encoding="utf=8") as f:
+                f.write(transcription)
         except Exception as e:
             print(f"Error during transcription: {e}")
             self.file_path_label.config(text=f"Error: {e}") 
+
+    def get_single_chunk_transcription(self, path):
+        """Returns single chunk text"""
+        with sr.AudioFile(path) as source:
+            audio_listened = self.r.record(source)
+            text = self.r.recognize_google(audio_listened, language=self.selected_language)
+
+        return text
+
+    def get_full_file_transcription(self, path, filename):
+        """Returns full file text"""
+        sound = AudioSegment.from_file(path)
+        #split when silence > 3000ms, 
+        chunks = split_on_silence(sound, 
+                              min_silence_len = 3000, silence_thresh=sound.dBFS-14, keep_silence=3000)
+        folder_name = "./IO_projekt/recorder/audio_chunks/"
+        os.makedirs(folder_name, exist_ok=True)
+
+        whole_text=""
+
+        for i, audio_chunk in enumerate(chunks, start=1):
+            #create chunk in chunk folder
+            chunk_filename = os.path.join(folder_name, f"{filename}_chunk{i}.wav")
+            audio_chunk.export(chunk_filename, format="wav")
+            try:
+                self.file_path_label.config(text=f"Transcription {filename}_chunk{i} processing...")
+                text = self.get_single_chunk_transcription(chunk_filename)
+            except sr.UnknownValueError as e:
+                print("Error:", str(e))
+            else:
+                text = f"{text.capitalize()}. "
+                print(f"{filename}_chunk{i}.wav: {text} \n")
+                whole_text += "\n"+text
+            finally:
+            #    Remove the chunk file after processing
+                if os.path.exists(chunk_filename):
+                    os.remove(chunk_filename)
+                    print(f"Deleted chunk: {chunk_filename}")
+        return whole_text
+    
 
