@@ -6,3 +6,5 @@ pyautogui
 opencv-python
 sounddevice
 scipy
+pyscreenrec
+tkmacosx

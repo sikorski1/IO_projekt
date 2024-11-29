@@ -1,11 +1,15 @@
 import tkinter as tk
-from tkinter import filedialog
-import speech_recognition as sr
-import os
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
+from tkinter import filedialog, messagebox
 import threading
+import os
 import time
+import pyautogui
+import cv2
+import numpy as np
+import speech_recognition as sr
+from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
+from pydub import AudioSegment
+
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
@@ -13,7 +17,12 @@ class ScreenRecorderGUI:
         self.is_recording = False
         self.red_dot = None
         self.transcription_thread = None
+        self.filename = "Recording.avi"
+        self.resolution = (1920, 1080)
+        self.codec = cv2.VideoWriter_fourcc(*"XVID")
+        self.fps = 30.0
 
+        # Set up the GUI window
         self.root = tk.Tk()
         self.root.title("Screen Recorder")
         self.root.geometry("400x400")
@@ -83,18 +92,44 @@ class ScreenRecorderGUI:
         self.language_label.config(text=f"Selected Language: {self.selected_language}")
 
     def start_recording(self):
-        """Start recording process."""
+        """Start the screen and audio recording process."""
+        os.system("rm -r ./data/*")
         if self.is_recording:
+            messagebox.showinfo("Info", "Recording is already in progress!")
             return
         self.is_recording = True
+
+        # Start separate threads for audio recording and screen recording
+        threading.Thread(target=start_recording_audio, daemon=True).start()  # Audio thread
+        threading.Thread(target=self.record_screen, daemon=True).start()  # Video thread
 
     def stop_recording(self):
         """Stop recording process."""
         if not self.is_recording:
+            messagebox.showinfo("Info", "No recording in progress!")
             return
         self.is_recording = False
 
+        os.system("ffmpeg -y -framerate 4 -i ./data/screenshot.%d.png -c:v libx264 -pix_fmt yuv420p outfile.mkv")
+        stop_recording_audio("output.wav")  # Assuming this stops audio recording
+        
+        os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4 | y")
+
+        messagebox.showinfo("Info", f"Recording saved as {self.filename}")
+
+    def record_screen(self):
+        """Record the screen and save it to a video file."""
+        name = "screenshot"
+        i = 0
+        while self.is_recording:
+            img = pyautogui.screenshot()
+            frame = np.array(img)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            cv2.imwrite("./data/"+name+"."+str(i)+".png",frame)
+            i+=1
+
     def transcript_file(self):
+        """Perform transcription of the selected audio file."""
         if not self.file_path:
             self.file_path_label.config(text="No file selected")
             return
@@ -107,7 +142,9 @@ class ScreenRecorderGUI:
 
         self.transcription_thread = threading.Thread(target=self.perform_transcription)
         self.transcription_thread.start()
+
     def perform_transcription(self):
+        """Perform transcription on the selected audio file."""
         try:
             file_name_without_extension = os.path.basename(self.file_path).rsplit('.', 1)[0]
             r = sr.Recognizer()
@@ -123,3 +160,5 @@ class ScreenRecorderGUI:
             print(f"Transcription: {text}")
         except Exception as e:
             print(f"Error during transcription: {e}")
+            self.file_path_label.config(text=f"Error: {e}") 
+

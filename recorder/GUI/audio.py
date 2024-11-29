@@ -34,7 +34,7 @@ def start_recording_audio(samplerate=48000, channels=2, duration=None):
         else:
             raise sd.CallbackStop
 
-    with sd.InputStream(samplerate=samplerate, channels=channels, callback=callback, device=4):
+    with sd.InputStream(samplerate=samplerate, channels=channels, callback=callback, device=1): # change for loopback interface
         if duration:
             sd.sleep(int(duration * 1000))
             stop_recording_audio()  # Automatically stop after duration
