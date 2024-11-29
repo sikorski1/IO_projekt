@@ -1,4 +1,5 @@
-from GUI.GUI import create_gui
+from GUI.GUI import ScreenRecorderGUI
+
 # Run the GUI
 if __name__ == "__main__":
-    create_gui()
+    ScreenRecorderGUI()

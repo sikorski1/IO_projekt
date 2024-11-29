@@ -6,20 +6,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-#single audio file folder path
-audio_folder_path = os.getenv("AUDIO_FOLDER_PATH")
-#audio chunks folder path
-audio_chunks_path = os.getenv("AUDIO_CHUNKS_PATH")
-#single text file folder path
-text_folder_path = os.getenv("TEXT_FOLDER_PATH")
+# #single audio file folder path
+# audio_folder_path = os.getenv("AUDIO_FOLDER_PATH")
+# #audio chunks folder path
+# audio_chunks_path = os.getenv("AUDIO_CHUNKS_PATH")
+# #single text file folder path
+# text_folder_path = os.getenv("TEXT_FOLDER_PATH")
 
-#folderpath + filename
-audio_file_path = audio_folder_path + "\plsample.wav"
+# #folderpath + filename
+# audio_file_path = audio_folder_path + "\plsample.wav"
 
-#folderpath + filename
-text_file_path = text_folder_path + "\plsample.txt"
+# #folderpath + filename
+# text_file_path = text_folder_path + "\plsample.txt"
 
-filename = os.path.splitext(os.path.basename(audio_file_path))[0]
+# filename = os.path.splitext(os.path.basename(audio_file_path))[0]
 r = sr.Recognizer()
 def transcribe_audio(path):
     with sr.AudioFile(path) as source:
