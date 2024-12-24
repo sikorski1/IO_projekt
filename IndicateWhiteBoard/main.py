@@ -48,7 +48,7 @@ def main():
     if yes_images:
         merged_image_path = './merged_image.png'
         merge_images(yes_images, merged_image_path)
-        final_instruction = "generate me notes for this one big screenshot"
+        final_instruction = "You will receive long image with whiteboard content. There should be multiple whiteboard in this image. Please generate notes for notes You receive from whiteboards!"
         notes = generate_text(final_instruction, merged_image_path)
         with open('./notes.txt', 'w') as notes_file:
             notes_file.write(notes)
