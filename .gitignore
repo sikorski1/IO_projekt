@@ -11,3 +11,5 @@ recorder/audio_chunks
 recorder/audio_transcriptions
 recorder/data/
 IndicateWhiteBoard/data/
+data
+output.wav

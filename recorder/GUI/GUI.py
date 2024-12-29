@@ -5,6 +5,7 @@ import os
 import time
 import pyautogui
 import cv2
+import glob
 import numpy as np
 import speech_recognition as sr
 from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
@@ -22,7 +23,7 @@ class ScreenRecorderGUI:
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
         self.fps = 30.0
-
+        self.defaultImg = os.getcwd() + r"\recorder\GUI\default.png"
         #Transcription Recorder
         self.r = sr.Recognizer()
 
@@ -85,6 +86,23 @@ class ScreenRecorderGUI:
             self.red_dot.config(bg="gray")
         self.root.after(200, self.update_status)
 
+    def compare_img_with_default(self, imgPath):
+        """comparing two imgs with same resolution"""
+
+        img1 = cv2.imread(self.defaultImg, 0)
+        img2 = cv2.imread(imgPath, 0)
+
+        #--- take the absolute difference of the images ---
+        res = cv2.absdiff(img1, img2)
+
+        #--- convert the result to integer type ---
+        res = res.astype(np.uint8)
+
+        #--- find percentage difference based on the number of pixels that are not zero ---
+        percentage = (np.count_nonzero(res) * 100)/ res.size
+
+        return 100 - percentage
+
     def select_file(self):
         """Open a file dialog to select a file and store its path."""
         self.file_path = filedialog.askopenfilename(title="Select a File")
@@ -97,7 +115,15 @@ class ScreenRecorderGUI:
 
     def start_recording(self):
         """Start the screen and audio recording process."""
-        os.system("rm -r ./data/*")
+        data_dir = os.path.join(os.getcwd(), "data")
+
+        # Remove all files in the directory
+        if os.path.exists(data_dir):
+            files = glob.glob(os.path.join(data_dir, '*'))
+            for file in files:
+                os.remove(file)  # Remove individual files
+        else:
+            print(f"Directory '{data_dir}' does not exist.")
         if self.is_recording:
             messagebox.showinfo("Info", "Recording is already in progress!")
             return
@@ -125,11 +151,21 @@ class ScreenRecorderGUI:
         """Record the screen and save it to a video file."""
         name = "screenshot"
         i = 0
+        last_comparison_time = time.time()
+        similarity = None
         while self.is_recording:
             img = pyautogui.screenshot()
             frame = np.array(img)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            cv2.imwrite("./data/"+name+"."+str(i)+".png",frame)
+            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.png")
+            current_time = time.time()
+            if current_time - last_comparison_time >= 5: #every 5 sec check
+                cv2.imwrite(file_path,frame)
+                similarity = self.compare_img_with_default(file_path)
+                print(f"Similarity with default image: {similarity:.2f}%")
+                last_comparison_time = current_time
+            if similarity is not None and similarity > 50: #similiarity set to 50%
+                cv2.imwrite(file_path,frame)
             i+=1
 
     def open_transcription_thread(self):
