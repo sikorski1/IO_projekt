@@ -23,7 +23,7 @@ class ScreenRecorderGUI:
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
         self.fps = 30.0
-        self.defaultImg = os.getcwd() + r"\recorder\GUI\default.png"
+        self.defaultImg = os.getcwd() + r"/GUI/teams.png"
         #Transcription Recorder
         self.r = sr.Recognizer()
 
@@ -92,6 +92,15 @@ class ScreenRecorderGUI:
         img1 = cv2.imread(self.defaultImg, 0)
         img2 = cv2.imread(imgPath, 0)
 
+        # Check if images are loaded correctly
+        if img1 is None:
+            raise FileNotFoundError(f"Default image not found at path: {self.defaultImg}")
+        if img2 is None:
+            raise FileNotFoundError(f"Image not found at path: {imgPath}")
+
+        # Resize img2 to match the size of img1
+        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
         #--- take the absolute difference of the images ---
         res = cv2.absdiff(img1, img2)
 
@@ -102,7 +111,7 @@ class ScreenRecorderGUI:
         percentage = (np.count_nonzero(res) * 100)/ res.size
 
         return 100 - percentage
-
+    
     def select_file(self):
         """Open a file dialog to select a file and store its path."""
         self.file_path = filedialog.askopenfilename(title="Select a File")
@@ -164,7 +173,7 @@ class ScreenRecorderGUI:
                 similarity = self.compare_img_with_default(file_path)
                 print(f"Similarity with default image: {similarity:.2f}%")
                 last_comparison_time = current_time
-            if similarity is not None and similarity > 50: #similiarity set to 50%
+            if similarity is not None and similarity > 30: #similiarity set to 30%
                 cv2.imwrite(file_path,frame)
             i+=1
 
