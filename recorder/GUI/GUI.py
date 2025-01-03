@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, PhotoImage
+import ttkbootstrap as ttk
 import threading
 import os
 import time
@@ -23,14 +24,16 @@ class ScreenRecorderGUI:
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
         self.fps = 30.0
+        self.platform = "teams"
+        self.max_files_size = "10GB"
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"
         #Transcription Recorder
         self.r = sr.Recognizer()
 
         # Set up the GUI window
-        self.root = tk.Tk()
+        self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
-        self.root.geometry("400x400")
+        self.root.geometry("450x450")
 
         self.create_widgets()
         self.root.after(200, self.update_status)
@@ -78,6 +81,52 @@ class ScreenRecorderGUI:
         self.language_label = tk.Label(self.root, text="No language selected")
         self.language_label.pack(pady=10)
 
+        settings_button = ttk.Button(self.root, text="Settings", bootstyle="light-outline", command=self.open_settings_window)
+        settings_button.pack(pady=10)
+
+    def open_settings_window(self):
+        self.settings_window = tk.Toplevel(self.root)
+        self.settings_window.title("Settings")
+        self.settings_window.geometry("250x250")
+
+        platforms = ["teams", "zoom", "meet"]
+        max_files_size = ["10GB", "5GB", "3GB"]
+        fps_options = ["30", "20", "15"]
+
+        ttk.Label(self.settings_window, text="Platform:", bootstyle="info").pack(pady=5)
+        self.platforms_var = ttk.StringVar(value=platforms[0])
+        platforms_menu = ttk.Combobox(self.settings_window, textvariable=self.platforms_var, values=platforms, bootstyle="default")
+        platforms_menu.pack()
+
+        # Max File Size Dropdown
+        ttk.Label(self.settings_window, text="Max File Size:", bootstyle="info").pack(pady=5)
+        self.max_files_size_var = ttk.StringVar(value=max_files_size[0])
+        max_files_size_menu = ttk.Combobox(self.settings_window, textvariable=self.max_files_size_var, values=max_files_size, bootstyle="default")
+        max_files_size_menu.pack()
+
+        # FPS Dropdown
+        ttk.Label(self.settings_window, text="FPS:", bootstyle="info").pack(pady=5)
+        self.fps_var = ttk.StringVar(value=fps_options[0])
+        fps_menu = ttk.Combobox(self.settings_window, textvariable=self.fps_var, values=fps_options, bootstyle="default")
+        fps_menu.pack()
+
+    def save_settings(self):
+        selected_platform = self.platforms_var.get()
+        self.platform = selected_platform
+
+        selected_max_file_size = self.max_files_size_var.get()
+        self.max_files_size = selected_max_file_size
+        
+        selected_fps = self.fps_var.get()
+        self.fps = selected_fps
+
+        print(f"Settings saved:")
+        print(f"Platform: {self.platform}")
+        print(f"Max File Size: {self.max_files_size}")
+        print(f"FPS: {self.fps}")
+
+        tk.messagebox.showinfo("Settings", "Settings have been saved successfully!")
+        self.settings_window.destroy()
     def update_status(self):
         """Update the status indicator for recording."""
         if self.is_recording:
@@ -88,6 +137,12 @@ class ScreenRecorderGUI:
 
     def compare_img_with_default(self, imgPath):
         """comparing two imgs with same resolution"""
+        if self.platform == "teams":
+            self.defaultImg = os.getcwd() + r"/GUI/teams.png"
+        elif self.platform == "zoom":
+            self.defaultImg = os.getcwd() + r"/GUI/zoom.png"
+        else:
+            self.defaultImg = os.getcwd() + r"/GUI/meet.png"
 
         img1 = cv2.imread(self.defaultImg, 0)
         img2 = cv2.imread(imgPath, 0)
