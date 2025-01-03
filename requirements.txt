@@ -10,3 +10,4 @@ pyscreenrec
 tkmacosx
 ollama
 tk
+ttkbootstrap
