@@ -11,3 +11,5 @@ tkmacosx
 ollama
 tk
 ttkbootstrap
+tkinterPdfViewer
+fpdf

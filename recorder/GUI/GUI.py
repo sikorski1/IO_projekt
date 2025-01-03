@@ -10,9 +10,10 @@ import glob
 import numpy as np
 import speech_recognition as sr
 from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
+from fpdf import FPDF
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-
+from tkinterPdfViewer import tkinterPdfViewer as pdf
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
@@ -382,8 +383,42 @@ class ScreenRecorderGUI:
         return whole_text
     
     def txt_to_pdf_conversion(self):
-        pass
+        if not self.file_txt_path:
+            tk.messagebox.showerror("Error", "No .txt file selected!")
+            return
+        output_pdf_path = self.file_txt_path.rsplit('.', 1)[0] + ".pdf"
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size = 12)
+            with open(self.file_txt_path, "r", encoding="utf-8") as file:
+                for line in file:
+                    words = line.strip().split() 
+                    while words:
+                        segment = words[:15] 
+                        words = words[15:] 
+                        pdf.cell(200, 10, txt=" ".join(segment), ln=True)
+
+            pdf.output(output_pdf_path)
+            tk.messagebox.showinfo("Success", f"PDF saved as {output_pdf_path}")
+        except Exception as e:
+            tk.messagebox.showerror("Error", f"An error occurred: {e}")
+
+
 
     def open_pdf(self):
-        pass
+        if not self.file_pdf_path:
+            tk.messagebox.showerror("Error", "No PDF file selected!")
+            return
+
+        if not os.path.exists(self.file_pdf_path):
+
+            tk.messagebox.showerror("Error", "PDF file not found!")
+            return
+        self.pdf_window = tk.Toplevel(self.more_window)
+        self.pdf_window.title("PDF Viewer")
+        self.pdf_window.geometry(self.calculate_window_pos(600, 600))
+    
+        d = pdf.ShowPdf().pdf_view(self.pdf_window, pdf_location=self.file_pdf_path, width=100, height=100)
+        d.pack(expand=True, fill="both")
 
