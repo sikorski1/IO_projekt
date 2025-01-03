@@ -16,6 +16,8 @@ from pydub.silence import split_on_silence
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
+        self.file_txt_path=""
+        self.file_pdf_path=""
         self.selected_language = ""
         self.is_recording = False
         self.red_dot = None
@@ -33,41 +35,43 @@ class ScreenRecorderGUI:
         # Set up the GUI window
         self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
-        self.root.geometry("450x450")
+        self.root.geometry("450x550")
 
         self.create_widgets()
         self.root.after(200, self.update_status)
         self.root.mainloop()
 
     def create_widgets(self):
+        # Recording Indicator
+        tk.Label(self.root, text="Recording Status:", font=("Arial", 14)).pack(pady=20)
+        self.red_dot = tk.Label(self.root, bg="gray", width=5, height=2)
+        self.red_dot.pack(pady=10)
+
+        # Kontener na przyciski Start i Stop
+        control_frame = tk.Frame(self.root)
+        control_frame.pack(pady=(20, 40))
+
         # Start Button
-        start_button = tk.Button(self.root, text="Start Recording", command=self.start_recording, bg="green", fg="white", width=20)
-        start_button.pack(pady=10)
+        start_button = tk.Button(control_frame, text="Start Recording", command=self.start_recording, bg="green", fg="white", width=15)
+        start_button.pack(side=tk.LEFT, padx=5)
 
         # Stop Button
-        stop_button = tk.Button(self.root, text="Stop Recording", command=self.stop_recording, bg="red", fg="white", width=20)
-        stop_button.pack(pady=10)
-
-        # Recording Indicator
-        tk.Label(self.root, text="Recording Status:").pack(pady=10)
-        self.red_dot = tk.Label(self.root, bg="gray", width=5, height=2)
-        self.red_dot.pack()
+        stop_button = tk.Button(control_frame, text="Stop Recording", command=self.stop_recording, bg="red", fg="white", width=15)
+        stop_button.pack(side=tk.LEFT, padx=5)
 
         # File Path Input and Transcript Button
-        file_transcript_frame = tk.Frame(self.root)
-        file_transcript_frame.pack(pady=10)
+        ttk.Label(self.root, text="File Transcription", font=("Arial", 14)).pack(pady=10)
 
-        file_path_button = tk.Button(file_transcript_frame, text="Browse", command=self.select_file, bg="blue", fg="white", width=15)
-        file_path_button.pack(side=tk.LEFT, padx=5)
+        ttk.Label(self.root, text="Select .wav file:", font=("Arial", 12)).pack(pady=10)
+        file_path_button = tk.Button(self.root, text="Browse", command=self.select_file, bg="blue", fg="white", width=15)
+        file_path_button.pack(padx=5)
 
-        transcript_button = tk.Button(file_transcript_frame, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
-        transcript_button.pack(side=tk.LEFT, padx=5)
 
-        self.file_path_label = tk.Label(self.root, text="No file selected")
+        self.file_path_label = ttk.Label(self.root, text="No file selected", bootstyle="warning", font=("Arial", 8))
         self.file_path_label.pack(pady=5)
 
         # Language Selection
-        tk.Label(self.root, text="Select Language:").pack(pady=10)
+        ttk.Label(self.root, text="Select Language:", font=("Arial", 12)).pack(pady=10)
 
         language_frame = tk.Frame(self.root)
         language_frame.pack()
@@ -78,16 +82,63 @@ class ScreenRecorderGUI:
         english_button = tk.Button(language_frame, text="ENG", command=lambda: self.select_language("en-US"), width=10)
         english_button.pack(side=tk.LEFT, padx=10)
 
-        self.language_label = tk.Label(self.root, text="No language selected")
+        self.language_label = ttk.Label(self.root, text="No language selected", bootstyle="warning", font=("Arial", 8))
         self.language_label.pack(pady=10)
 
-        settings_button = ttk.Button(self.root, text="Settings", bootstyle="light-outline", command=self.open_settings_window)
-        settings_button.pack(pady=10)
+        transcript_button = tk.Button(self.root, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
+        transcript_button.pack(padx=5)
+        # Przycisk Settings wyrównany do prawej strony
+        settings_frame = tk.Frame(self.root)
+        settings_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        more_button = ttk.Button(settings_frame, text="More", bootstyle="success-outline", command=self.open_more_window)
+        more_button.pack(side=tk.LEFT)
+        settings_button = ttk.Button(settings_frame, text="Settings", bootstyle="light-outline", command=self.open_settings_window)
+        settings_button.pack(side=tk.RIGHT)
+
+    def calculate_window_pos(self, window_width, window_height):
+        root_width = self.root.winfo_width()
+        root_height = self.root.winfo_height()
+        root_x = self.root.winfo_x()
+        root_y = self.root.winfo_y()
+        pos_x = root_x + (root_width // 2) - (window_width // 2)
+        pos_y = root_y + (root_height // 2) - (window_height // 2)
+        return f"{window_width}x{window_height}+{pos_x}+{pos_y}"
+
+    def open_more_window(self):
+        self.more_window = tk.Toplevel(self.root)
+        self.more_window.title("More")
+        self.more_window.geometry(self.calculate_window_pos(350, 350))
+        self.more_window.transient(self.root)
+        self.more_window.grab_set()
+        ttk.Label(self.more_window, text="Txt to pdf coverter", font=("Arial", 12)).pack(pady=5)
+        ttk.Label(self.more_window, text="Select .txt file:", font=("Arial", 10)).pack(pady=10)
+        file_txt_path_button = tk.Button(self.more_window, text="Browse", command=self.select_txt_file, bg="blue", fg="white", width=15)
+        file_txt_path_button.pack(padx=5)
+        if self.file_txt_path:
+            self.file_txt_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_txt_path}", bootstyle="warning", font=("Arial", 8))
+        else:
+            self.file_txt_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="warning", font=("Arial", 8))
+        self.file_txt_path_label.pack(pady=5)
+        conversion_button = ttk.Button(self.more_window, text="Convert", bootstyle="primary", command=self.txt_to_pdf_conversion)
+        conversion_button.pack(pady=(5,20))
+
+        ttk.Label(self.more_window, text="Open pdf", font=("Arial", 12)).pack(pady=5)
+        ttk.Label(self.more_window, text="Select .pdf file:", font=("Arial", 10)).pack(pady=10)
+        file_pdf_path_button = tk.Button(self.more_window, text="Browse", command=self.select_pdf_file, bg="blue", fg="white", width=15)
+        file_pdf_path_button.pack(padx=5)
+        if self.file_pdf_path:
+            self.file_pdf_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_pdf_path}", bootstyle="warning", font=("Arial", 8))
+        else:
+            self.file_pdf_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="warning", font=("Arial", 8))
+        self.file_pdf_path_label.pack(pady=5)
+        open_pdf_button = ttk.Button(self.more_window, text="Open", bootstyle="primary", command=self.open_pdf)
+        open_pdf_button.pack()
 
     def open_settings_window(self):
         self.settings_window = tk.Toplevel(self.root)
         self.settings_window.title("Settings")
-        self.settings_window.geometry("250x250")
+        self.settings_window.geometry(self.calculate_window_pos(250, 250))
 
         platforms = ["teams", "zoom", "meet"]
         max_files_size = ["10GB", "5GB", "3GB"]
@@ -169,8 +220,30 @@ class ScreenRecorderGUI:
     
     def select_file(self):
         """Open a file dialog to select a file and store its path."""
-        self.file_path = filedialog.askopenfilename(title="Select a File")
+        self.file_path = filedialog.askopenfilename(filetypes=[("Audio files", "*.wav")])
         self.file_path_label.config(text=f"Selected: {self.file_path}")
+    def select_txt_file(self):
+        """Open a file dialog to select a txt file and store its path."""
+        try:
+            self.file_txt_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
+            if self.file_txt_path:
+                self.file_txt_path_label.config(text=f"Selected: {self.file_txt_path}")
+            else:
+                self.file_txt_path_label.config(text="No file selected")
+        except Exception as e:
+            print(f"Error during file selection: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
+    def select_pdf_file(self):
+        """Open a file dialog to select a pdf file and store its path."""
+        try:
+            self.file_pdf_path = filedialog.askopenfilename(filetypes=[("Pdf Files", "*.pdf")])
+            if self.file_pdf_path:
+                self.file_pdf_path_label.config(text=f"Selected: {self.file_pdf_path}")
+            else:
+                self.file_pdf_path_label.config(text="No file selected")
+        except Exception as e:
+            print(f"Error during file selection: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
     def select_language(self, language):
         """Set the selected language."""
@@ -308,4 +381,9 @@ class ScreenRecorderGUI:
                     print(f"Deleted chunk: {chunk_filename}")
         return whole_text
     
+    def txt_to_pdf_conversion(self):
+        pass
+
+    def open_pdf(self):
+        pass
 
