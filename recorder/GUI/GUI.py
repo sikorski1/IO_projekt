@@ -68,7 +68,7 @@ class ScreenRecorderGUI:
         file_path_button.pack(padx=5)
 
 
-        self.file_path_label = ttk.Label(self.root, text="No file selected", bootstyle="warning", font=("Arial", 8))
+        self.file_path_label = ttk.Label(self.root, text="No file selected", bootstyle="danger", font=("Arial", 8))
         self.file_path_label.pack(pady=5)
 
         # Language Selection
@@ -83,7 +83,7 @@ class ScreenRecorderGUI:
         english_button = tk.Button(language_frame, text="ENG", command=lambda: self.select_language("en-US"), width=10)
         english_button.pack(side=tk.LEFT, padx=10)
 
-        self.language_label = ttk.Label(self.root, text="No language selected", bootstyle="warning", font=("Arial", 8))
+        self.language_label = ttk.Label(self.root, text="No language selected", bootstyle="danger", font=("Arial", 8))
         self.language_label.pack(pady=10)
 
         transcript_button = tk.Button(self.root, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
@@ -117,9 +117,9 @@ class ScreenRecorderGUI:
         file_txt_path_button = tk.Button(self.more_window, text="Browse", command=self.select_txt_file, bg="blue", fg="white", width=15)
         file_txt_path_button.pack(padx=5)
         if self.file_txt_path:
-            self.file_txt_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_txt_path}", bootstyle="warning", font=("Arial", 8))
+            self.file_txt_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_txt_path}", bootstyle="success", font=("Arial", 8))
         else:
-            self.file_txt_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="warning", font=("Arial", 8))
+            self.file_txt_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="danger", font=("Arial", 8))
         self.file_txt_path_label.pack(pady=5)
         conversion_button = ttk.Button(self.more_window, text="Convert", bootstyle="primary", command=self.txt_to_pdf_conversion)
         conversion_button.pack(pady=(5,20))
@@ -129,9 +129,9 @@ class ScreenRecorderGUI:
         file_pdf_path_button = tk.Button(self.more_window, text="Browse", command=self.select_pdf_file, bg="blue", fg="white", width=15)
         file_pdf_path_button.pack(padx=5)
         if self.file_pdf_path:
-            self.file_pdf_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_pdf_path}", bootstyle="warning", font=("Arial", 8))
+            self.file_pdf_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_pdf_path}", bootstyle="success", font=("Arial", 8))
         else:
-            self.file_pdf_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="warning", font=("Arial", 8))
+            self.file_pdf_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="danger", font=("Arial", 8))
         self.file_pdf_path_label.pack(pady=5)
         open_pdf_button = ttk.Button(self.more_window, text="Open", bootstyle="primary", command=self.open_pdf)
         open_pdf_button.pack()
@@ -221,16 +221,19 @@ class ScreenRecorderGUI:
     
     def select_file(self):
         """Open a file dialog to select a file and store its path."""
+        if self.transcription_thread and self.transcription_thread.is_alive():
+            self.file_path_label.config(text="Transcription already in progress", bootstyle="danger")
+            return
         self.file_path = filedialog.askopenfilename(filetypes=[("Audio files", "*.wav")])
-        self.file_path_label.config(text=f"Selected: {self.file_path}")
+        self.file_path_label.config(text=f"Selected: {self.file_path}", bootstyle="success")
     def select_txt_file(self):
         """Open a file dialog to select a txt file and store its path."""
         try:
             self.file_txt_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
             if self.file_txt_path:
-                self.file_txt_path_label.config(text=f"Selected: {self.file_txt_path}")
+                self.file_txt_path_label.config(text=f"Selected: {self.file_txt_path}", bootstyle="success")
             else:
-                self.file_txt_path_label.config(text="No file selected")
+                self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
         except Exception as e:
             print(f"Error during file selection: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
@@ -239,17 +242,20 @@ class ScreenRecorderGUI:
         try:
             self.file_pdf_path = filedialog.askopenfilename(filetypes=[("Pdf Files", "*.pdf")])
             if self.file_pdf_path:
-                self.file_pdf_path_label.config(text=f"Selected: {self.file_pdf_path}")
+                self.file_pdf_path_label.config(text=f"Selected: {self.file_pdf_path}", bootstyle="success")
             else:
-                self.file_pdf_path_label.config(text="No file selected")
+                self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
         except Exception as e:
             print(f"Error during file selection: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
 
     def select_language(self, language):
         """Set the selected language."""
+        if self.transcription_thread and self.transcription_thread.is_alive():
+            self.language_label.config(text="Transcription already in progress", bootstyle="danger")
+            return
         self.selected_language = language
-        self.language_label.config(text=f"Selected Language: {self.selected_language}")
+        self.language_label.config(text=f"Selected Language: {self.selected_language}", bootstyle="success")
 
     def start_recording(self):
         """Start the screen and audio recording process."""
@@ -401,6 +407,8 @@ class ScreenRecorderGUI:
 
             pdf.output(output_pdf_path)
             tk.messagebox.showinfo("Success", f"PDF saved as {output_pdf_path}")
+            self.file_txt_path = ""
+            self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
         except Exception as e:
             tk.messagebox.showerror("Error", f"An error occurred: {e}")
 
@@ -421,4 +429,6 @@ class ScreenRecorderGUI:
     
         d = pdf.ShowPdf().pdf_view(self.pdf_window, pdf_location=self.file_pdf_path, width=100, height=100)
         d.pack(expand=True, fill="both")
+        self.file_pdf_path = ""
+        self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
 
