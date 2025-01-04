@@ -29,6 +29,7 @@ class ScreenRecorderGUI:
         self.fps = 30.0
         self.platform = "teams"
         self.max_files_size = "10GB"
+        self.storage_size = 0 # self.max_files_size converted to bytes
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"
         #Transcription Recorder
         self.r = sr.Recognizer()
@@ -290,6 +291,25 @@ class ScreenRecorderGUI:
         os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4 | y")
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
+
+    # Function to calculate the storage size of the meetings
+    def storage_calculations(self):
+        # Storage size converted to bytes:
+        if self.max_files_size == "10GB":
+            self.storage_size = 10 * 1024 * 1024 * 1024
+        elif self.max_files_size == "5GB":
+            self.storage_size = 5 * 1024 * 1024 * 1024
+        else:
+            self.storage_size = 3 * 1024 * 1024 * 1024
+        # Check video size if exists
+        video_size = os.path.getsize("meetings/actual_meeting/output.mp4") if os.path.exists("meetings/actual_meeting/output.mp4") else 0
+        # Check audio size if exists
+        audio_size = os.path.getsize("meetings/actual_meeting/output.wav") if os.path.exists("meetings/actual_meeting/output.wav") else 0
+
+        if(video_size >= self.storage_size or audio_size >= self.storage_size):
+            return False
+        else:
+            return True
 
     def record_screen(self):
         """Record the screen and save it to a video file."""
