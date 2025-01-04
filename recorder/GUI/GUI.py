@@ -284,10 +284,16 @@ class ScreenRecorderGUI:
             return
         self.is_recording = False
 
-        os.system("ffmpeg -y -framerate 4 -i ./data/screenshot.%d.png -c:v libx264 -pix_fmt yuv420p outfile.mkv")
+        # Ensure there are screenshots before running ffmpeg
+        data_dir = "./data/whiteboard_data"
+        if len(glob.glob(os.path.join(data_dir, '*.png'))) > 0:
+            os.system(f"ffmpeg -y -framerate 4 -pattern_type glob -i '{data_dir}/*.png' -c:v libx264 -pix_fmt yuv420p outfile.mkv")
+        else:
+            print("No screenshots captured.")
+
         stop_recording_audio("output.wav")  # Assuming this stops audio recording
-        
-        os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4 | y")
+
+        os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4")
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
 
@@ -302,6 +308,7 @@ class ScreenRecorderGUI:
             frame = np.array(img)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.png")
+            file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.png")
             current_time = time.time()
             if current_time - last_comparison_time >= 5: #every 5 sec check
                 cv2.imwrite(file_path,frame)
@@ -309,7 +316,7 @@ class ScreenRecorderGUI:
                 print(f"Similarity with default image: {similarity:.2f}%")
                 last_comparison_time = current_time
             if similarity is not None and similarity > 30: #similiarity set to 30%
-                cv2.imwrite(file_path,frame)
+                cv2.imwrite(file_path_whiteboard,frame)
             i+=1
 
     def open_transcription_thread(self):
