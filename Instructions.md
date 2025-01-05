@@ -1,7 +1,5 @@
 # How to install dependencies
 
-`brew install python-tk`
-
 `uv pip install -r requirements.txt`
 
 # Get input devices
