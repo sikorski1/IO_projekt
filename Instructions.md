@@ -1,6 +1,16 @@
 # How to install dependencies
 
+
+## for macos:
 `brew install python-tk`
+
+## for windows:
+
+
+## for linux:
+
+
+## for everyone: 
 
 `uv pip install -r requirements.txt`
 
@@ -22,6 +32,9 @@ In order to get a system volume from macos we need to install blackhole https://
 
 Audio midi devices -> choose blackhole 2ch -> use this for sound output
 
+`brew install blackhole-2ch`
+
+https://github.com/ExistentialAudio/BlackHole/wiki/Multi-Output-Device
 ## Linux
 
 todo

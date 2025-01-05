@@ -260,12 +260,16 @@ class ScreenRecorderGUI:
     def start_recording(self):
         """Start the screen and audio recording process."""
         data_dir = os.path.join(os.getcwd(), "data")
+        whiteboard_dir = os.path.join(os.getcwd(), "whiteboard_data")
 
         # Remove all files in the directory
         if os.path.exists(data_dir):
             files = glob.glob(os.path.join(data_dir, '*'))
+            files_whiteboard = glob.glob(os.path.join(whiteboard_dir, '*'))
             for file in files:
                 os.remove(file)  # Remove individual files
+            for file in files_whiteboard:
+                os.remove(file)  # Remove whiteboard files
         else:
             print(f"Directory '{data_dir}' does not exist.")
         if self.is_recording:
@@ -285,15 +289,15 @@ class ScreenRecorderGUI:
         self.is_recording = False
 
         # Ensure there are screenshots before running ffmpeg
-        data_dir = "./data/whiteboard_data"
+        data_dir = "./whiteboard_data" 
         if len(glob.glob(os.path.join(data_dir, '*.png'))) > 0:
-            os.system(f"ffmpeg -y -framerate 4 -pattern_type glob -i '{data_dir}/*.png' -c:v libx264 -pix_fmt yuv420p outfile.mkv")
+            os.system(f"ffmpeg -y -framerate 4 -pattern_type glob -i '{data_dir}/*.png' -c:v libx264 -pix_fmt yuv420p ./out/whiteboard_video.mkv")
         else:
             print("No screenshots captured.")
 
-        stop_recording_audio("output.wav")  # Assuming this stops audio recording
+        stop_recording_audio("./out/audio.wav")  # Assuming this stops audio recording
 
-        os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4")
+        # os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4") // connect two files dont think it is neccessary
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
 
