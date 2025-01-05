@@ -35,6 +35,7 @@ class ScreenRecorderGUI:
         self.max_audio_time = 0
         self.max_video_time = 0
         self.defaultImg = os.getcwd() + r"/recorder/GUI/teams.png"
+
         #Transcription Recorder
         self.r = sr.Recognizer()
 
@@ -334,7 +335,6 @@ class ScreenRecorderGUI:
         # Calculate bytes per second
         self.max_video_time = self.storage_size // (self.video_bps+self.audio_bps)
 
-        
     def record_screen(self):
         """Record the screen and save it to a video file."""
         name = "screenshot"

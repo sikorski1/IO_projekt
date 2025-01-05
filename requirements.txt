@@ -13,3 +13,4 @@ tk
 ttkbootstrap
 tkinterPdfViewer
 fpdf
+os
