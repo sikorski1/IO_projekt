@@ -289,9 +289,16 @@ class ScreenRecorderGUI:
         self.is_recording = False
 
         # Ensure there are screenshots before running ffmpeg
-        data_dir = "./whiteboard_data" 
+               # Ensure there are screenshots before running ffmpeg
+        data_dir = os.path.join(os.getcwd(), "whiteboard_data")
+        image_files = glob.glob(os.path.join(data_dir, '*.png'))
         if len(glob.glob(os.path.join(data_dir, '*.png'))) > 0:
-            os.system(f"ffmpeg -y -framerate 4 -pattern_type glob -i '{data_dir}/*.png' -c:v libx264 -pix_fmt yuv420p ./out/whiteboard_video.mkv")
+            image_list = '|'.join(image_files) #changed to | instead of space.
+            ffmpeg_command = (
+                f"ffmpeg -y -framerate 4 -i \"concat:{image_list}\" "
+                f"-c:v libx264 -pix_fmt yuv420p ./out/whiteboard_video.mkv"
+            )
+            os.system(ffmpeg_command)
         else:
             print("No screenshots captured.")
 

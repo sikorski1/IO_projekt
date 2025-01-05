@@ -6,6 +6,12 @@
 
 ## for windows:
 
+download from this site 7zip https://www.gyan.dev/ffmpeg/builds/
+`git-full`
+
+and move ffmpeg.exe into .venv/Scripts/
+
+ 0 Microsoft Sound Mapper - Input, MME (2 in, 0 out) -> we should use 2 in input for mme
 
 ## for linux:
 
@@ -13,6 +19,8 @@
 ## for everyone: 
 
 `uv pip install -r requirements.txt`
+
+`install ffmpeg as a binary to use from terminal`
 
 # Get input devices
 
