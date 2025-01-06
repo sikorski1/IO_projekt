@@ -15,6 +15,8 @@ and move ffmpeg.exe into .venv/Scripts/
 
 ## for linux:
 
+sudo apt install ffmpeg
+sudo apt install gnome-screenshot
 
 ## for everyone: 
 
