@@ -13,3 +13,5 @@ recorder/data/
 IndicateWhiteBoard/data/
 data
 output.wav
+recorder/whiteboard_data/*
+recorder/out/*

@@ -26,15 +26,10 @@ class ScreenRecorderGUI:
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
+        self.fps = 30.0
         self.platform = "teams"
         self.max_files_size = "10GB"
-        self.storage_size = 0 # self.max_files_size converted to bytes
-        self.quality = 100
-        self.audio_bps = 0
-        self.video_bps = 0
-        self.max_audio_time = 0
-        self.max_video_time = 0
-        self.defaultImg = os.getcwd() + r"/recorder/GUI/teams.png"
+        self.defaultImg = os.getcwd() + r"/GUI/teams.png"
         #Transcription Recorder
         self.r = sr.Recognizer()
 
@@ -148,7 +143,7 @@ class ScreenRecorderGUI:
 
         platforms = ["teams", "zoom", "meet"]
         max_files_size = ["10GB", "5GB", "3GB"]
-        quality_options = ["100", "90", "80", "70", "60", "50", "40", "30", "20", "10"]
+        fps_options = ["30", "20", "15"]
 
         ttk.Label(self.settings_window, text="Platform:", bootstyle="info").pack(pady=5)
         self.platforms_var = ttk.StringVar(value=platforms[0])
@@ -161,11 +156,11 @@ class ScreenRecorderGUI:
         max_files_size_menu = ttk.Combobox(self.settings_window, textvariable=self.max_files_size_var, values=max_files_size, bootstyle="default")
         max_files_size_menu.pack()
 
-        # Quality Dropdown
-        ttk.Label(self.settings_window, text="Quality:", bootstyle="info").pack(pady=5)
-        self.quality = ttk.StringVar(value=quality_options[0])
-        quality_menu = ttk.Combobox(self.settings_window, textvariable=self.quality, values=quality_options, bootstyle="default")
-        quality_menu.pack()
+        # FPS Dropdown
+        ttk.Label(self.settings_window, text="FPS:", bootstyle="info").pack(pady=5)
+        self.fps_var = ttk.StringVar(value=fps_options[0])
+        fps_menu = ttk.Combobox(self.settings_window, textvariable=self.fps_var, values=fps_options, bootstyle="default")
+        fps_menu.pack()
 
     def save_settings(self):
         selected_platform = self.platforms_var.get()
@@ -174,13 +169,13 @@ class ScreenRecorderGUI:
         selected_max_file_size = self.max_files_size_var.get()
         self.max_files_size = selected_max_file_size
         
-        selected_quality = self.quality.get()
-        self.self_quality = selected_quality
+        selected_fps = self.fps_var.get()
+        self.fps = selected_fps
 
         print(f"Settings saved:")
         print(f"Platform: {self.platform}")
         print(f"Max File Size: {self.max_files_size}")
-        print(f"Quality: {self.quality}")
+        print(f"FPS: {self.fps}")
 
         tk.messagebox.showinfo("Settings", "Settings have been saved successfully!")
         self.settings_window.destroy()
@@ -195,11 +190,11 @@ class ScreenRecorderGUI:
     def compare_img_with_default(self, imgPath):
         """comparing two imgs with same resolution"""
         if self.platform == "teams":
-            self.defaultImg = os.getcwd() + r"/recorder/GUI/teams.png"
+            self.defaultImg = os.getcwd() + r"/GUI/teams.png"
         elif self.platform == "zoom":
-            self.defaultImg = os.getcwd() + r"/recorder/GUI/zoom.png"
+            self.defaultImg = os.getcwd() + r"/GUI/zoom.png"
         else:
-            self.defaultImg = os.getcwd() + r"/recorder/GUI/meet.png"
+            self.defaultImg = os.getcwd() + r"/GUI/meet.png"
 
         img1 = cv2.imread(self.defaultImg, 0)
         img2 = cv2.imread(imgPath, 0)
@@ -265,19 +260,22 @@ class ScreenRecorderGUI:
     def start_recording(self):
         """Start the screen and audio recording process."""
         data_dir = os.path.join(os.getcwd(), "data")
+        whiteboard_dir = os.path.join(os.getcwd(), "whiteboard_data")
 
         # Remove all files in the directory
         if os.path.exists(data_dir):
             files = glob.glob(os.path.join(data_dir, '*'))
+            files_whiteboard = glob.glob(os.path.join(whiteboard_dir, '*'))
             for file in files:
                 os.remove(file)  # Remove individual files
+            for file in files_whiteboard:
+                os.remove(file)  # Remove whiteboard files
         else:
             print(f"Directory '{data_dir}' does not exist.")
         if self.is_recording:
             messagebox.showinfo("Info", "Recording is already in progress!")
             return
         self.is_recording = True
-        self.video_storage_calculations()
 
         # Start separate threads for audio recording and screen recording
         threading.Thread(target=start_recording_audio, daemon=True).start()  # Audio thread
@@ -291,70 +289,45 @@ class ScreenRecorderGUI:
         self.is_recording = False
 
         # Ensure there are screenshots before running ffmpeg
-        data_dir = "./data/whiteboard_data"
-        if len(glob.glob(os.path.join(data_dir, '*.jpeg'))) > 0:
-            print(os.getcwd())
-            os.system(f"ffmpeg -y -framerate 4 -pattern_type glob -i '{data_dir}/*.jpeg' -c:v libx264 -pix_fmt yuv420p -b:v 500k ./data/outfile.mkv")
+               # Ensure there are screenshots before running ffmpeg
+        data_dir = os.path.join(os.getcwd(), "whiteboard_data")
+        image_files = glob.glob(os.path.join(data_dir, '*.png'))
+        if len(glob.glob(os.path.join(data_dir, '*.png'))) > 0:
+            image_list = '|'.join(image_files) #changed to | instead of space.
+            ffmpeg_command = (
+                f"ffmpeg -y -framerate 4 -i \"concat:{image_list}\" "
+                f"-c:v libx264 -pix_fmt yuv420p ./out/whiteboard_video.mkv"
+            )
+            os.system(ffmpeg_command)
         else:
             print("No screenshots captured.")
 
-        stop_recording_audio(".data/output.wav")  # Assuming this stops audio recording
+        stop_recording_audio("./out/audio.wav")  # Assuming this stops audio recording
 
-        os.system("ffmpeg -y -i ./data/outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4")
+        # os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4") // connect two files dont think it is neccessary
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
 
-    def calculate_self_storage_size(self):
-        # Storage size converted to bytes:
-        if self.max_files_size == "10GB":
-            self.storage_size = 10 * 1024 * 1024 * 1024
-        elif self.max_files_size == "5GB":
-            self.storage_size = 5 * 1024 * 1024 * 1024
-        else:
-            self.storage_size = 3 * 1024 * 1024 * 1024
-
-    def audio_storage_calculations(self): # funkcja do przeliczania czasu nagrywania audio nie powinna w sumie być tu, ale tam nie ogarniam o co chodzi, to zostawiam tutaj
-        """Calculates the maximum recording time for a given maximum file size"""
-        self.audio_bps = 48000 * 2 * 2  # 48000 samplerate, 2 channels, 2 bytes per sample
-        self.max_audio_time = self.storage_size // self.audio_bps
-
-    # Function to calculate the storage size of video
-    def video_storage_calculations(self):
-        self.audio_storage_calculations()
-        # Sample screenshot to calculate number of screenshots
-        name = "sample"
-        sample_img = pyautogui.screenshot()
-        frame = np.array(sample_img)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        file_path = os.path.join(os.getcwd(), "data", f"{name}.jpeg")
-        # Save the sample image
-        cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
-        # Calculate bytes of 1 sec video withut audio
-        self.video_bps = 4*os.path.getsize(file_path) # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
-        # Calculate bytes per second
-        self.max_video_time = self.storage_size // (self.video_bps+self.audio_bps)
-
-        
     def record_screen(self):
         """Record the screen and save it to a video file."""
         name = "screenshot"
         i = 0
         last_comparison_time = time.time()
         similarity = None
-        while self.is_recording and i <= 4*self.max_video_time: # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
+        while self.is_recording:
             img = pyautogui.screenshot()
             frame = np.array(img)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
-            file_path_whiteboard = os.path.join(os.getcwd(), "data/whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
+            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.png")
+            file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.png")
             current_time = time.time()
             if current_time - last_comparison_time >= 5: #every 5 sec check
-                cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                cv2.imwrite(file_path,frame)
                 similarity = self.compare_img_with_default(file_path)
                 print(f"Similarity with default image: {similarity:.2f}%")
                 last_comparison_time = current_time
             if similarity is not None and similarity > 30: #similiarity set to 30%
-                cv2.imwrite(file_path_whiteboard,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                cv2.imwrite(file_path_whiteboard,frame)
             i+=1
 
     def open_transcription_thread(self):
