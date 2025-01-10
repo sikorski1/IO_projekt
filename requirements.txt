@@ -8,3 +8,8 @@ sounddevice
 scipy
 pyscreenrec
 tkmacosx
+ollama
+tk
+ttkbootstrap
+tkinterPdfViewer
+fpdf

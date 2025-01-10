@@ -1,19 +1,24 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, PhotoImage
+import ttkbootstrap as ttk
 import threading
 import os
 import time
 import pyautogui
 import cv2
+import glob
 import numpy as np
 import speech_recognition as sr
 from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
+from fpdf import FPDF
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-
+from tkinterPdfViewer import tkinterPdfViewer as pdf
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
+        self.file_txt_path=""
+        self.file_pdf_path=""
         self.selected_language = ""
         self.is_recording = False
         self.red_dot = None
@@ -21,49 +26,58 @@ class ScreenRecorderGUI:
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
-        self.fps = 30.0
-
+        self.platform = "teams"
+        self.max_files_size = "10GB"
+        self.storage_size = 0 # self.max_files_size converted to bytes
+        self.quality = 100
+        self.audio_bps = 0
+        self.video_bps = 0
+        self.max_audio_time = 0
+        self.max_video_time = 0
+        self.defaultImg = os.getcwd() + r"/recorder/GUI/teams.png"
         #Transcription Recorder
         self.r = sr.Recognizer()
 
         # Set up the GUI window
-        self.root = tk.Tk()
+        self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
-        self.root.geometry("400x400")
+        self.root.geometry("450x550")
 
         self.create_widgets()
         self.root.after(200, self.update_status)
         self.root.mainloop()
 
     def create_widgets(self):
+        # Recording Indicator
+        tk.Label(self.root, text="Recording Status:", font=("Arial", 14)).pack(pady=20)
+        self.red_dot = tk.Label(self.root, bg="gray", width=5, height=2)
+        self.red_dot.pack(pady=10)
+
+        # Kontener na przyciski Start i Stop
+        control_frame = tk.Frame(self.root)
+        control_frame.pack(pady=(20, 40))
+
         # Start Button
-        start_button = tk.Button(self.root, text="Start Recording", command=self.start_recording, bg="green", fg="white", width=20)
-        start_button.pack(pady=10)
+        start_button = tk.Button(control_frame, text="Start Recording", command=self.start_recording, bg="green", fg="white", width=15)
+        start_button.pack(side=tk.LEFT, padx=5)
 
         # Stop Button
-        stop_button = tk.Button(self.root, text="Stop Recording", command=self.stop_recording, bg="red", fg="white", width=20)
-        stop_button.pack(pady=10)
-
-        # Recording Indicator
-        tk.Label(self.root, text="Recording Status:").pack(pady=10)
-        self.red_dot = tk.Label(self.root, bg="gray", width=5, height=2)
-        self.red_dot.pack()
+        stop_button = tk.Button(control_frame, text="Stop Recording", command=self.stop_recording, bg="red", fg="white", width=15)
+        stop_button.pack(side=tk.LEFT, padx=5)
 
         # File Path Input and Transcript Button
-        file_transcript_frame = tk.Frame(self.root)
-        file_transcript_frame.pack(pady=10)
+        ttk.Label(self.root, text="File Transcription", font=("Arial", 14)).pack(pady=10)
 
-        file_path_button = tk.Button(file_transcript_frame, text="Browse", command=self.select_file, bg="blue", fg="white", width=15)
-        file_path_button.pack(side=tk.LEFT, padx=5)
+        ttk.Label(self.root, text="Select .wav file:", font=("Arial", 12)).pack(pady=10)
+        file_path_button = tk.Button(self.root, text="Browse", command=self.select_file, bg="blue", fg="white", width=15)
+        file_path_button.pack(padx=5)
 
-        transcript_button = tk.Button(file_transcript_frame, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
-        transcript_button.pack(side=tk.LEFT, padx=5)
 
-        self.file_path_label = tk.Label(self.root, text="No file selected")
+        self.file_path_label = ttk.Label(self.root, text="No file selected", bootstyle="danger", font=("Arial", 8))
         self.file_path_label.pack(pady=5)
 
         # Language Selection
-        tk.Label(self.root, text="Select Language:").pack(pady=10)
+        ttk.Label(self.root, text="Select Language:", font=("Arial", 12)).pack(pady=10)
 
         language_frame = tk.Frame(self.root)
         language_frame.pack()
@@ -74,9 +88,102 @@ class ScreenRecorderGUI:
         english_button = tk.Button(language_frame, text="ENG", command=lambda: self.select_language("en-US"), width=10)
         english_button.pack(side=tk.LEFT, padx=10)
 
-        self.language_label = tk.Label(self.root, text="No language selected")
+        self.language_label = ttk.Label(self.root, text="No language selected", bootstyle="danger", font=("Arial", 8))
         self.language_label.pack(pady=10)
 
+        transcript_button = tk.Button(self.root, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
+        transcript_button.pack(padx=5)
+        # Przycisk Settings wyrównany do prawej strony
+        settings_frame = tk.Frame(self.root)
+        settings_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        more_button = ttk.Button(settings_frame, text="More", bootstyle="success-outline", command=self.open_more_window)
+        more_button.pack(side=tk.LEFT)
+        settings_button = ttk.Button(settings_frame, text="Settings", bootstyle="light-outline", command=self.open_settings_window)
+        settings_button.pack(side=tk.RIGHT)
+
+    def calculate_window_pos(self, window_width, window_height):
+        root_width = self.root.winfo_width()
+        root_height = self.root.winfo_height()
+        root_x = self.root.winfo_x()
+        root_y = self.root.winfo_y()
+        pos_x = root_x + (root_width // 2) - (window_width // 2)
+        pos_y = root_y + (root_height // 2) - (window_height // 2)
+        return f"{window_width}x{window_height}+{pos_x}+{pos_y}"
+
+    def open_more_window(self):
+        self.more_window = tk.Toplevel(self.root)
+        self.more_window.title("More")
+        self.more_window.geometry(self.calculate_window_pos(350, 350))
+        self.more_window.transient(self.root)
+        self.more_window.grab_set()
+        ttk.Label(self.more_window, text="Txt to pdf coverter", font=("Arial", 12)).pack(pady=5)
+        ttk.Label(self.more_window, text="Select .txt file:", font=("Arial", 10)).pack(pady=10)
+        file_txt_path_button = tk.Button(self.more_window, text="Browse", command=self.select_txt_file, bg="blue", fg="white", width=15)
+        file_txt_path_button.pack(padx=5)
+        if self.file_txt_path:
+            self.file_txt_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_txt_path}", bootstyle="success", font=("Arial", 8))
+        else:
+            self.file_txt_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="danger", font=("Arial", 8))
+        self.file_txt_path_label.pack(pady=5)
+        conversion_button = ttk.Button(self.more_window, text="Convert", bootstyle="primary", command=self.txt_to_pdf_conversion)
+        conversion_button.pack(pady=(5,20))
+
+        ttk.Label(self.more_window, text="Open pdf", font=("Arial", 12)).pack(pady=5)
+        ttk.Label(self.more_window, text="Select .pdf file:", font=("Arial", 10)).pack(pady=10)
+        file_pdf_path_button = tk.Button(self.more_window, text="Browse", command=self.select_pdf_file, bg="blue", fg="white", width=15)
+        file_pdf_path_button.pack(padx=5)
+        if self.file_pdf_path:
+            self.file_pdf_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_pdf_path}", bootstyle="success", font=("Arial", 8))
+        else:
+            self.file_pdf_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="danger", font=("Arial", 8))
+        self.file_pdf_path_label.pack(pady=5)
+        open_pdf_button = ttk.Button(self.more_window, text="Open", bootstyle="primary", command=self.open_pdf)
+        open_pdf_button.pack()
+
+    def open_settings_window(self):
+        self.settings_window = tk.Toplevel(self.root)
+        self.settings_window.title("Settings")
+        self.settings_window.geometry(self.calculate_window_pos(250, 250))
+
+        platforms = ["teams", "zoom", "meet"]
+        max_files_size = ["10GB", "5GB", "3GB"]
+        quality_options = ["100", "90", "80", "70", "60", "50", "40", "30", "20", "10"]
+
+        ttk.Label(self.settings_window, text="Platform:", bootstyle="info").pack(pady=5)
+        self.platforms_var = ttk.StringVar(value=platforms[0])
+        platforms_menu = ttk.Combobox(self.settings_window, textvariable=self.platforms_var, values=platforms, bootstyle="default")
+        platforms_menu.pack()
+
+        # Max File Size Dropdown
+        ttk.Label(self.settings_window, text="Max File Size:", bootstyle="info").pack(pady=5)
+        self.max_files_size_var = ttk.StringVar(value=max_files_size[0])
+        max_files_size_menu = ttk.Combobox(self.settings_window, textvariable=self.max_files_size_var, values=max_files_size, bootstyle="default")
+        max_files_size_menu.pack()
+
+        # Quality Dropdown
+        ttk.Label(self.settings_window, text="Quality:", bootstyle="info").pack(pady=5)
+        self.quality = ttk.StringVar(value=quality_options[0])
+        quality_menu = ttk.Combobox(self.settings_window, textvariable=self.quality, values=quality_options, bootstyle="default")
+        quality_menu.pack()
+
+    def save_settings(self):
+        selected_platform = self.platforms_var.get()
+        self.platform = selected_platform
+
+        selected_max_file_size = self.max_files_size_var.get()
+        self.max_files_size = selected_max_file_size
+        
+        selected_quality = self.quality.get()
+        self.self_quality = selected_quality
+
+        print(f"Settings saved:")
+        print(f"Platform: {self.platform}")
+        print(f"Max File Size: {self.max_files_size}")
+        print(f"Quality: {self.quality}")
+
+        tk.messagebox.showinfo("Settings", "Settings have been saved successfully!")
+        self.settings_window.destroy()
     def update_status(self):
         """Update the status indicator for recording."""
         if self.is_recording:
@@ -85,23 +192,92 @@ class ScreenRecorderGUI:
             self.red_dot.config(bg="gray")
         self.root.after(200, self.update_status)
 
+    def compare_img_with_default(self, imgPath):
+        """comparing two imgs with same resolution"""
+        if self.platform == "teams":
+            self.defaultImg = os.getcwd() + r"/recorder/GUI/teams.png"
+        elif self.platform == "zoom":
+            self.defaultImg = os.getcwd() + r"/recorder/GUI/zoom.png"
+        else:
+            self.defaultImg = os.getcwd() + r"/recorder/GUI/meet.png"
+
+        img1 = cv2.imread(self.defaultImg, 0)
+        img2 = cv2.imread(imgPath, 0)
+
+        # Check if images are loaded correctly
+        if img1 is None:
+            raise FileNotFoundError(f"Default image not found at path: {self.defaultImg}")
+        if img2 is None:
+            raise FileNotFoundError(f"Image not found at path: {imgPath}")
+
+        # Resize img2 to match the size of img1
+        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
+        #--- take the absolute difference of the images ---
+        res = cv2.absdiff(img1, img2)
+
+        #--- convert the result to integer type ---
+        res = res.astype(np.uint8)
+
+        #--- find percentage difference based on the number of pixels that are not zero ---
+        percentage = (np.count_nonzero(res) * 100)/ res.size
+
+        return 100 - percentage
+    
     def select_file(self):
         """Open a file dialog to select a file and store its path."""
-        self.file_path = filedialog.askopenfilename(title="Select a File")
-        self.file_path_label.config(text=f"Selected: {self.file_path}")
+        if self.transcription_thread and self.transcription_thread.is_alive():
+            self.file_path_label.config(text="Transcription already in progress", bootstyle="danger")
+            return
+        self.file_path = filedialog.askopenfilename(filetypes=[("Audio files", "*.wav")])
+        self.file_path_label.config(text=f"Selected: {self.file_path}", bootstyle="success")
+    def select_txt_file(self):
+        """Open a file dialog to select a txt file and store its path."""
+        try:
+            self.file_txt_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
+            if self.file_txt_path:
+                self.file_txt_path_label.config(text=f"Selected: {self.file_txt_path}", bootstyle="success")
+            else:
+                self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
+        except Exception as e:
+            print(f"Error during file selection: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
+    def select_pdf_file(self):
+        """Open a file dialog to select a pdf file and store its path."""
+        try:
+            self.file_pdf_path = filedialog.askopenfilename(filetypes=[("Pdf Files", "*.pdf")])
+            if self.file_pdf_path:
+                self.file_pdf_path_label.config(text=f"Selected: {self.file_pdf_path}", bootstyle="success")
+            else:
+                self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
+        except Exception as e:
+            print(f"Error during file selection: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
     def select_language(self, language):
         """Set the selected language."""
+        if self.transcription_thread and self.transcription_thread.is_alive():
+            self.language_label.config(text="Transcription already in progress", bootstyle="danger")
+            return
         self.selected_language = language
-        self.language_label.config(text=f"Selected Language: {self.selected_language}")
+        self.language_label.config(text=f"Selected Language: {self.selected_language}", bootstyle="success")
 
     def start_recording(self):
         """Start the screen and audio recording process."""
-        os.system("rm -r ./data/*")
+        data_dir = os.path.join(os.getcwd(), "data")
+
+        # Remove all files in the directory
+        if os.path.exists(data_dir):
+            files = glob.glob(os.path.join(data_dir, '*'))
+            for file in files:
+                os.remove(file)  # Remove individual files
+        else:
+            print(f"Directory '{data_dir}' does not exist.")
         if self.is_recording:
             messagebox.showinfo("Info", "Recording is already in progress!")
             return
         self.is_recording = True
+        self.video_storage_calculations()
 
         # Start separate threads for audio recording and screen recording
         threading.Thread(target=start_recording_audio, daemon=True).start()  # Audio thread
@@ -114,22 +290,71 @@ class ScreenRecorderGUI:
             return
         self.is_recording = False
 
-        os.system("ffmpeg -y -framerate 4 -i ./data/screenshot.%d.png -c:v libx264 -pix_fmt yuv420p outfile.mkv")
-        stop_recording_audio("output.wav")  # Assuming this stops audio recording
-        
-        os.system("ffmpeg -y -i outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4 | y")
+        # Ensure there are screenshots before running ffmpeg
+        data_dir = "./data/whiteboard_data"
+        if len(glob.glob(os.path.join(data_dir, '*.jpeg'))) > 0:
+            print(os.getcwd())
+            os.system(f"ffmpeg -y -framerate 4 -pattern_type glob -i '{data_dir}/*.jpeg' -c:v libx264 -pix_fmt yuv420p -b:v 500k ./data/outfile.mkv")
+        else:
+            print("No screenshots captured.")
+
+        stop_recording_audio(".data/output.wav")  # Assuming this stops audio recording
+
+        os.system("ffmpeg -y -i ./data/outfile.mkv -i output.wav -c:v copy -c:a aac output.mp4")
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
 
+    def calculate_self_storage_size(self):
+        # Storage size converted to bytes:
+        if self.max_files_size == "10GB":
+            self.storage_size = 10 * 1024 * 1024 * 1024
+        elif self.max_files_size == "5GB":
+            self.storage_size = 5 * 1024 * 1024 * 1024
+        else:
+            self.storage_size = 3 * 1024 * 1024 * 1024
+
+    def audio_storage_calculations(self): # funkcja do przeliczania czasu nagrywania audio nie powinna w sumie być tu, ale tam nie ogarniam o co chodzi, to zostawiam tutaj
+        """Calculates the maximum recording time for a given maximum file size"""
+        self.audio_bps = 48000 * 2 * 2  # 48000 samplerate, 2 channels, 2 bytes per sample
+        self.max_audio_time = self.storage_size // self.audio_bps
+
+    # Function to calculate the storage size of video
+    def video_storage_calculations(self):
+        self.audio_storage_calculations()
+        # Sample screenshot to calculate number of screenshots
+        name = "sample"
+        sample_img = pyautogui.screenshot()
+        frame = np.array(sample_img)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        file_path = os.path.join(os.getcwd(), "data", f"{name}.jpeg")
+        # Save the sample image
+        cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+        # Calculate bytes of 1 sec video withut audio
+        self.video_bps = 4*os.path.getsize(file_path) # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
+        # Calculate bytes per second
+        self.max_video_time = self.storage_size // (self.video_bps+self.audio_bps)
+
+        
     def record_screen(self):
         """Record the screen and save it to a video file."""
         name = "screenshot"
         i = 0
-        while self.is_recording:
+        last_comparison_time = time.time()
+        similarity = None
+        while self.is_recording and i <= 4*self.max_video_time: # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
             img = pyautogui.screenshot()
             frame = np.array(img)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            cv2.imwrite("./data/"+name+"."+str(i)+".png",frame)
+            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
+            file_path_whiteboard = os.path.join(os.getcwd(), "data/whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
+            current_time = time.time()
+            if current_time - last_comparison_time >= 5: #every 5 sec check
+                cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                similarity = self.compare_img_with_default(file_path)
+                print(f"Similarity with default image: {similarity:.2f}%")
+                last_comparison_time = current_time
+            if similarity is not None and similarity > 30: #similiarity set to 30%
+                cv2.imwrite(file_path_whiteboard,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
             i+=1
 
     def open_transcription_thread(self):
@@ -208,4 +433,47 @@ class ScreenRecorderGUI:
                     print(f"Deleted chunk: {chunk_filename}")
         return whole_text
     
+    def txt_to_pdf_conversion(self):
+        if not self.file_txt_path:
+            tk.messagebox.showerror("Error", "No .txt file selected!")
+            return
+        output_pdf_path = self.file_txt_path.rsplit('.', 1)[0] + ".pdf"
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size = 12)
+            with open(self.file_txt_path, "r", encoding="utf-8") as file:
+                for line in file:
+                    words = line.strip().split() 
+                    while words:
+                        segment = words[:15] 
+                        words = words[15:] 
+                        pdf.cell(200, 10, txt=" ".join(segment), ln=True)
+
+            pdf.output(output_pdf_path)
+            tk.messagebox.showinfo("Success", f"PDF saved as {output_pdf_path}")
+            self.file_txt_path = ""
+            self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
+        except Exception as e:
+            tk.messagebox.showerror("Error", f"An error occurred: {e}")
+
+
+
+    def open_pdf(self):
+        if not self.file_pdf_path:
+            tk.messagebox.showerror("Error", "No PDF file selected!")
+            return
+
+        if not os.path.exists(self.file_pdf_path):
+
+            tk.messagebox.showerror("Error", "PDF file not found!")
+            return
+        self.pdf_window = tk.Toplevel(self.more_window)
+        self.pdf_window.title("PDF Viewer")
+        self.pdf_window.geometry(self.calculate_window_pos(600, 600))
+    
+        d = pdf.ShowPdf().pdf_view(self.pdf_window, pdf_location=self.file_pdf_path, width=100, height=100)
+        d.pack(expand=True, fill="both")
+        self.file_pdf_path = ""
+        self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
 

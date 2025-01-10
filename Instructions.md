@@ -1,5 +1,7 @@
 # How to install dependencies
 
+`brew install python-tk`
+
 `uv pip install -r requirements.txt`
 
 # Get input devices
@@ -27,3 +29,7 @@ todo
 ## Windows
 
 Todo
+
+
+
+# In order to setup correct video recorder go with `ffmpeg`
