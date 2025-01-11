@@ -14,6 +14,7 @@ from fpdf import FPDF
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from tkinterPdfViewer import tkinterPdfViewer as pdf
+import subprocess
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
@@ -300,6 +301,7 @@ class ScreenRecorderGUI:
             with open(file_list_path, "w") as file_list:
                 for img_file in sorted(image_files):  # Ensure proper order
                     file_list.write(f"file '{img_file}'\n")
+<<<<<<< HEAD
 
             # ffmpeg command using file list
             ffmpeg_command = (
@@ -307,14 +309,35 @@ class ScreenRecorderGUI:
                 f"-c:v libx264 -pix_fmt yuv420p ./out/whiteboard_video.mkv"
             )
             os.system(ffmpeg_command)
+=======
+                    file_list.write(f"duration 0.25\n")
+
+            # ffmpeg command using file list
+            ffmpeg_command = [
+                "ffmpeg",
+                "-y",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", file_list_path,
+                 "-framerate", "4", #add a frame rate
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "./out/whiteboard_video.mkv",
+            ]
+            subprocess.run(ffmpeg_command, check=True)
+>>>>>>> recording_fix
         else:
             print("No screenshots captured.")
 
         stop_recording_audio("./out/audio.wav")  # Assuming this stops audio recording
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
+<<<<<<< HEAD
 
 
+=======
+        
+>>>>>>> recording_fix
     def record_screen(self):
         """Record the screen and save it to a video file."""
         name = "screenshot"
