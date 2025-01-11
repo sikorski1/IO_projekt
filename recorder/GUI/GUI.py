@@ -314,6 +314,7 @@ class ScreenRecorderGUI:
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
 
+
     def record_screen(self):
         """Record the screen and save it to a video file."""
         name = "screenshot"
