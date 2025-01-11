@@ -11,5 +11,5 @@ recorder/audio_chunks
 recorder/audio_transcriptions
 IndicateWhiteBoard/data/
 output.wav
-recorder/whiteboard_data/*
-recorder/out/*
+# recorder/whiteboard_data/*
+# recorder/out/*
