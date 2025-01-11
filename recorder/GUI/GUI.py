@@ -27,10 +27,15 @@ class ScreenRecorderGUI:
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
-        self.fps = 30.0
         self.platform = "teams"
-        self.max_files_size = "10GB"
-        self.defaultImg = os.getcwd() + r"/GUI/teams.png"
+        self.max_files_size = "0.1GB"
+        self.storage_size = 0 # self.max_files_size converted to bytes
+        self.quality = 100
+        self.audio_bps = 0
+        self.video_bps = 0
+        self.max_audio_time = 0
+        self.max_video_time = 0        
+        self.defaultImg = os.getcwd() + r"/GUI/teams.png"\
         #Transcription Recorder
         self.r = sr.Recognizer()
 
@@ -143,8 +148,8 @@ class ScreenRecorderGUI:
         self.settings_window.geometry(self.calculate_window_pos(250, 250))
 
         platforms = ["teams", "zoom", "meet"]
-        max_files_size = ["10GB", "5GB", "3GB"]
-        fps_options = ["30", "20", "15"]
+        max_files_size = ["0.1GB", "10GB", "5GB", "3GB"]
+        quality_options = ["100", "90", "80", "70", "60", "50", "40", "30", "20", "10"]
 
         ttk.Label(self.settings_window, text="Platform:", bootstyle="info").pack(pady=5)
         self.platforms_var = ttk.StringVar(value=platforms[0])
@@ -157,11 +162,11 @@ class ScreenRecorderGUI:
         max_files_size_menu = ttk.Combobox(self.settings_window, textvariable=self.max_files_size_var, values=max_files_size, bootstyle="default")
         max_files_size_menu.pack()
 
-        # FPS Dropdown
-        ttk.Label(self.settings_window, text="FPS:", bootstyle="info").pack(pady=5)
-        self.fps_var = ttk.StringVar(value=fps_options[0])
-        fps_menu = ttk.Combobox(self.settings_window, textvariable=self.fps_var, values=fps_options, bootstyle="default")
-        fps_menu.pack()
+        # Quality Dropdown
+        ttk.Label(self.settings_window, text="Quality:", bootstyle="info").pack(pady=5)
+        self.quality = ttk.StringVar(value=quality_options[0])
+        quality_menu = ttk.Combobox(self.settings_window, textvariable=self.quality, values=quality_options, bootstyle="default")
+        quality_menu.pack()
 
     def save_settings(self):
         selected_platform = self.platforms_var.get()
@@ -170,13 +175,13 @@ class ScreenRecorderGUI:
         selected_max_file_size = self.max_files_size_var.get()
         self.max_files_size = selected_max_file_size
         
-        selected_fps = self.fps_var.get()
-        self.fps = selected_fps
+        selected_quality = self.quality.get()
+        self.self_quality = selected_quality
 
         print(f"Settings saved:")
         print(f"Platform: {self.platform}")
         print(f"Max File Size: {self.max_files_size}")
-        print(f"FPS: {self.fps}")
+        print(f"Quality: {self.quality}")
 
         tk.messagebox.showinfo("Settings", "Settings have been saved successfully!")
         self.settings_window.destroy()
@@ -258,8 +263,43 @@ class ScreenRecorderGUI:
         self.selected_language = language
         self.language_label.config(text=f"Selected Language: {self.selected_language}", bootstyle="success")
 
+    def calculate_self_storage_size(self):
+        # Storage size converted to bytes:
+        if self.max_files_size == "0.1GB":
+            self.storage_size = 0.1 * 1024 * 1024 * 1024
+        elif self.max_files_size == "10GB":
+            self.storage_size = 10 * 1024 * 1024 * 1024
+        elif self.max_files_size == "5GB":
+            self.storage_size = 5 * 1024 * 1024 * 1024
+        else:
+            self.storage_size = 3 * 1024 * 1024 * 1024
+
+    def audio_storage_calculations(self): # funkcja do przeliczania czasu nagrywania audio nie powinna w sumie być tu, ale tam nie ogarniam o co chodzi, to zostawiam tutaj
+        """Calculates the maximum recording time for a given maximum file size"""
+        self.calculate_self_storage_size()
+        self.audio_bps = 48000 * 2 * 2  # 48000 samplerate, 2 channels, 2 bytes per sample
+        self.max_audio_time = self.storage_size // self.audio_bps
+        print(f"Max audio time: {self.max_audio_time} seconds")
+
+    # Function to calculate the storage size of video
+    def video_storage_calculations(self):
+        self.audio_storage_calculations()
+        # Sample screenshot to calculate number of screenshots
+        name = "sample"
+        sample_img = pyautogui.screenshot()
+        frame = np.array(sample_img)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        file_path = os.path.join(os.getcwd(), "data", f"{name}.jpeg")
+        # Save the sample image
+        cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+        # Calculate bytes of 1 sec video withut audio
+        self.video_bps = 4*os.path.getsize(file_path) # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
+        # Calculate bytes per second
+        self.max_video_time = self.storage_size // (self.video_bps+self.audio_bps)
+
     def start_recording(self):
         """Start the screen and audio recording process."""
+        self.video_storage_calculations()
         data_dir = os.path.join(os.getcwd(), "data")
         whiteboard_dir = os.path.join(os.getcwd(), "whiteboard_data")
 
@@ -281,7 +321,7 @@ class ScreenRecorderGUI:
         self.is_recording = True
 
         # Start separate threads for audio recording and screen recording
-        threading.Thread(target=start_recording_audio, daemon=True).start()  # Audio thread
+        threading.Thread(target=start_recording_audio, daemon=True).start()     
         threading.Thread(target=self.record_screen, daemon=True).start()  # Video thread
 
     def stop_recording(self):
@@ -293,7 +333,7 @@ class ScreenRecorderGUI:
 
         # Ensure there are screenshots before running ffmpeg
         data_dir = os.path.join(os.getcwd(), "whiteboard_data")
-        image_files = glob.glob(os.path.join(data_dir, '*.png'))
+        image_files = glob.glob(os.path.join(data_dir, '*.jpeg'))
         
         if len(image_files) > 0:
             # Create a file list for ffmpeg
@@ -323,27 +363,51 @@ class ScreenRecorderGUI:
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
         
+    def count_jpeg_files_glob(self, folder_path="whiteboard_data"):
+        """Zlicza liczbę plików JPEG w danym folderze używając glob."""
+        if not os.path.isdir(folder_path):
+            raise ValueError(f"Podana ścieżka '{folder_path}' nie jest folderem.")
+
+        pattern = os.path.join(folder_path, "*.jpeg")  # Wzorzec dla plików .jpeg
+        return len(glob.glob(pattern))
+
     def record_screen(self):
         """Record the screen and save it to a video file."""
         name = "screenshot"
         i = 0
         last_comparison_time = time.time()
+        start_time = time.time()
         similarity = None
         while self.is_recording:
-            img = pyautogui.screenshot()
-            frame = np.array(img)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.png")
-            file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.png")
-            current_time = time.time()
-            if current_time - last_comparison_time >= 5: #every 5 sec check
-                cv2.imwrite(file_path,frame)
-                similarity = self.compare_img_with_default(file_path)
-                print(f"Similarity with default image: {similarity:.2f}%")
-                last_comparison_time = current_time
-            if similarity is not None and similarity > 30: #similiarity set to 30%
-                cv2.imwrite(file_path_whiteboard,frame)
-            i+=1
+            try:
+                jpeg_count = self.count_jpeg_files_glob()
+                print(f"Liczba plików JPEG: {jpeg_count}")
+            except ValueError as e:
+                print(e)
+            if jpeg_count <= 4*self.max_video_time and self.max_audio_time >= time.time()-start_time:
+                img = pyautogui.screenshot()
+                frame = np.array(img)
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
+                file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
+                current_time = time.time()
+                if current_time - last_comparison_time >= 5: #every 5 sec check
+                    cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                    similarity = self.compare_img_with_default(file_path)
+                    print(f"Similarity with default image: {similarity:.2f}%")
+                    last_comparison_time = current_time
+                if similarity is not None and similarity > 30: #similiarity set to 30%
+                    cv2.imwrite(file_path_whiteboard,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                i+=1
+            elif jpeg_count > 4*self.max_video_time:
+                print("Max video time reached")
+                self.stop_recording()
+                self.is_recording = False
+            else:
+                print("Max audio time reached")
+                print(time.time()-start_time)
+                self.stop_recording()
+                self.is_recording = False
 
     def open_transcription_thread(self):
         """Opens transcription thread"""
@@ -376,7 +440,7 @@ class ScreenRecorderGUI:
             elapsed_time = time.time() - start_time
             print(f"Transcription completed in {elapsed_time:.2f} seconds") 
             self.file_path_label.config(text=f"Transcription completed in {elapsed_time:.2f} seconds")
-            with open(f"./IO_projekt/recorder/audio_transcriptions/{filename}.txt", "w", encoding="utf=8") as f:
+            with open(f"./audio_transcriptions/{filename}.txt", "w", encoding="utf=8") as f:
                 f.write(transcription)
         except Exception as e:
             print(f"Error during transcription: {e}")
@@ -464,4 +528,3 @@ class ScreenRecorderGUI:
         d.pack(expand=True, fill="both")
         self.file_pdf_path = ""
         self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
-
