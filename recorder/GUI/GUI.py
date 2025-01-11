@@ -460,7 +460,7 @@ class ScreenRecorderGUI:
         #split when silence > 3000ms, 
         chunks = split_on_silence(sound, 
                               min_silence_len = 3000, silence_thresh=sound.dBFS-14, keep_silence=3000)
-        folder_name = "./IO_projekt/recorder/audio_chunks/"
+        folder_name = "./audio_chunks/"
         os.makedirs(folder_name, exist_ok=True)
 
         whole_text=""
