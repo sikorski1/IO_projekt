@@ -410,23 +410,27 @@ class ScreenRecorderGUI:
                 self.stop_recording()
                 self.is_recording = False
 
-    # def open_transcription_thread(self):
-    #     """Opens transcription thread"""
-    #     if not self.file_path:
-    #         self.file_path_label.config(text="No file selected")
-    #         return
-    #     if not self.selected_language:
-    #         self.file_path_label.config(text="No language provided")
-    #         return
-    #     if not self.file_path.lower().endswith('.wav'):
-    #         self.file_path_label.config(text="Invalid file type. Please select a .wav file.")
-    #         return
-    #     if self.transcription_thread and self.transcription_thread.is_alive():
-    #         self.file_path_label.config(text="Transcription already in progress")
-    #         return
-    #     self.file_path_label.config(text="Transcription started...")
-    #     self.transcription_thread = threading.Thread(target=self.perform_transcription)
-    #     self.transcription_thread.start()
+    def open_transcription_thread(self):
+        """Opens transcription thread"""
+        if not self.file_path:
+            self.file_path_label.config(text="No file selected")
+            return
+        if not self.selected_language:
+            self.file_path_label.config(text="No language provided")
+            return
+        if not self.file_path.lower().endswith('.wav'):
+            self.file_path_label.config(text="Invalid file type. Please select a .wav file.")
+            return
+        if self.transcription_thread and self.transcription_thread.is_alive():
+            self.file_path_label.config(text="Transcription already in progress")
+            return
+        self.file_path_label.config(text="Transcription started...")
+        self.transcription_thread = threading.Thread(target=process_audio_file, args=[self.file_path])
+        self.transcription_thread.start()
+        self.transcription_thread.join()
+        self.file_path_label.config(text="")
+        tk.messagebox.showinfo("Info","Finished transcription thread")
+
 
     # def perform_transcription(self):
     #     """Perform transcription on the selected audio file."""
@@ -487,8 +491,8 @@ class ScreenRecorderGUI:
     #     return whole_text
 
     def transcription_thread(self):
-        if os.path.exists(self.audio_file):
-            threading.Thread(target=process_audio_file, args=(self.audio_file)).start()
+        if os.path.exists(self.file_path):
+            threading.Thread(target=process_audio_file, args=(self.file_path)).start()
     
     def txt_to_pdf_conversion(self):
         if not self.file_txt_path:

@@ -56,3 +56,7 @@ Todo
 
 
 # In order to setup correct video recorder go with `ffmpeg`
+
+
+
+## USE PYTHON 3.12.7

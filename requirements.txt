@@ -141,7 +141,7 @@ primePy
 propcache
 protobuf
 proto-plus
-psycopg2
+psycopg2-binary
 pyannote.audio
 pyannote.core
 pyannote.database
