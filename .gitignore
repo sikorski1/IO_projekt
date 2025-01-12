@@ -9,7 +9,9 @@ __pycache__/
 *.log
 recorder/audio_chunks
 recorder/audio_transcriptions
-recorder/data/
 IndicateWhiteBoard/data/
-data
-output.wav
+output.wav 
+recorder/GUI/cache
+recorder/GUI/cache/pyannote/*
+# recorder/whiteboard_data/*
+# recorder/out/*
