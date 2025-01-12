@@ -9,7 +9,7 @@ __pycache__/
 *.log
 recorder/audio_chunks
 recorder/audio_transcriptions
-recorder/data/
 IndicateWhiteBoard/data/
-data
 output.wav
+# recorder/whiteboard_data/*
+# recorder/out/*

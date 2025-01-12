@@ -1,0 +1,7 @@
+SPEAKER_01 [1.57s - 4.94s]: Ciemno wszędzie, głucho wszędzie, co to będzie, co to będzie.
+SPEAKER_02 [5.58s - 18.71s]: Zamknijcie drzwi do kaplicy i stańcie dookoła trumny. Żadnej lampy, żadnej świecy. W oknach zaświećcie całuny. Niech księżyca jasność blada. Szczeinami tu nie wpada.
+SPEAKER_02 [19.35s - 20.94s]: Tylko żwało to byś miała.
+SPEAKER_01 [22.05s - 23.67s]: Jak kazało się, tak się stało.
+SPEAKER_02 [25.06s - 28.08s]: Ciemno wszędzie, głucho wszędzie, co to będzie?
+SPEAKER_01 [29.33s - 57.41s]: Przyścowe duszeczki w jakikolwiek świata stronie, Czyli która w smole płonie, czyli marzenie na dnie rzeki, Czyli da dotkliwszej kary w surowym szczepiona drewnie, Gdy ją w piecu gryzą żary i piszczy i płacze żewnie. Każda, spieszcie do gromady, gromada, niech się tu zbierze, Oto obchodzimy dziady, wstępujcie w święty przybytek, Jest jałmużna, są pocierze i jedzenie i napitek.
+SPEAKER_02 [58.89s - 70.74s]: Podajcie mi garść kądzieli, zapalam ją wyspę w piechem. Skoro płomę chóry strzeli, pędźcie go z lekkim oddechem, o tak, o tak, dalej, dalej. Niech się na powietrzu spali.
