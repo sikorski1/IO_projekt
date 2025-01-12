@@ -284,7 +284,6 @@ class ScreenRecorderGUI:
 
     # Function to calculate the storage size of video
     def video_storage_calculations(self):
-        self.audio_storage_calculations()
         # Sample screenshot to calculate number of screenshots
         name = "sample"
         sample_img = pyautogui.screenshot()
@@ -296,10 +295,11 @@ class ScreenRecorderGUI:
         # Calculate bytes of 1 sec video withut audio
         self.video_bps = 4*os.path.getsize(file_path) # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
         # Calculate bytes per second
-        self.max_video_time = self.storage_size // (self.video_bps+self.audio_bps)
+        self.max_video_time = self.storage_size // (self.video_bps)
 
     def start_recording(self):
         """Start the screen and audio recording process."""
+        self.audio_storage_calculations()
         self.video_storage_calculations()
         data_dir = os.path.join(os.getcwd(), "data")
         whiteboard_dir = os.path.join(os.getcwd(), "whiteboard_data")
@@ -345,22 +345,28 @@ class ScreenRecorderGUI:
                     file_list.write(f"duration 0.25\n")
 
             # ffmpeg command using file list
+            current_date = time.strftime("%Y-%m-%d")
+            meeting_start_time = time.strftime("%H-%M-%S")
+            output_dir = os.path.join(os.getcwd(), "..", "meetings", current_date)
+            os.makedirs(output_dir, exist_ok=True)
+            output_file = os.path.join(output_dir, f"{meeting_start_time}_whiteboard.mkv")
+            output_file_audio = os.path.join(output_dir, f"{meeting_start_time}_audio.wav")
             ffmpeg_command = [
                 "ffmpeg",
                 "-y",
                 "-f", "concat",
                 "-safe", "0",
                 "-i", file_list_path,
-                 "-framerate", "4", #add a frame rate
+                "-framerate", "4",  # add a frame rate
                 "-c:v", "libx264",
                 "-pix_fmt", "yuv420p",
-                "./out/whiteboard_video.mkv",
+                output_file,
             ]
             subprocess.run(ffmpeg_command, check=True)
         else:
             print("No screenshots captured.")
 
-        stop_recording_audio("./out/audio.wav")  # Assuming this stops audio recording
+        stop_recording_audio(output_file_audio)  # Assuming this stops audio recording
 
         messagebox.showinfo("Info", f"Recording saved as {self.filename}")
         
@@ -397,7 +403,7 @@ class ScreenRecorderGUI:
                     similarity = self.compare_img_with_default(file_path)
                     print(f"Similarity with default image: {similarity:.2f}%")
                     last_comparison_time = current_time
-                if similarity is not None and similarity > 30: #similiarity set to 30%
+                if similarity is not None and similarity > 15: #similiarity set to
                     cv2.imwrite(file_path_whiteboard,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
                 i+=1
             elif jpeg_count > 4*self.max_video_time:
