@@ -10,6 +10,7 @@ import glob
 import numpy as np
 import speech_recognition as sr
 from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
+from .transcription import process_audio_file
 from fpdf import FPDF
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
@@ -409,81 +410,85 @@ class ScreenRecorderGUI:
                 self.stop_recording()
                 self.is_recording = False
 
-    def open_transcription_thread(self):
-        """Opens transcription thread"""
-        if not self.file_path:
-            self.file_path_label.config(text="No file selected")
-            return
-        if not self.selected_language:
-            self.file_path_label.config(text="No language provided")
-            return
-        if not self.file_path.lower().endswith('.wav'):
-            self.file_path_label.config(text="Invalid file type. Please select a .wav file.")
-            return
-        if self.transcription_thread and self.transcription_thread.is_alive():
-            self.file_path_label.config(text="Transcription already in progress")
-            return
-        self.file_path_label.config(text="Transcription started...")
-        self.transcription_thread = threading.Thread(target=self.perform_transcription)
-        self.transcription_thread.start()
+    # def open_transcription_thread(self):
+    #     """Opens transcription thread"""
+    #     if not self.file_path:
+    #         self.file_path_label.config(text="No file selected")
+    #         return
+    #     if not self.selected_language:
+    #         self.file_path_label.config(text="No language provided")
+    #         return
+    #     if not self.file_path.lower().endswith('.wav'):
+    #         self.file_path_label.config(text="Invalid file type. Please select a .wav file.")
+    #         return
+    #     if self.transcription_thread and self.transcription_thread.is_alive():
+    #         self.file_path_label.config(text="Transcription already in progress")
+    #         return
+    #     self.file_path_label.config(text="Transcription started...")
+    #     self.transcription_thread = threading.Thread(target=self.perform_transcription)
+    #     self.transcription_thread.start()
 
-    def perform_transcription(self):
-        """Perform transcription on the selected audio file."""
-        try:
-            filename = os.path.basename(self.file_path).rsplit('.', 1)[0]
+    # def perform_transcription(self):
+    #     """Perform transcription on the selected audio file."""
+    #     try:
+    #         filename = os.path.basename(self.file_path).rsplit('.', 1)[0]
 
-            print("Transcription started...")
-            start_time = time.time()
+    #         print("Transcription started...")
+    #         start_time = time.time()
 
-            transcription = self.get_full_file_transcription(self.file_path, filename)  
+    #         transcription = self.get_full_file_transcription(self.file_path, filename)  
 
-            elapsed_time = time.time() - start_time
-            print(f"Transcription completed in {elapsed_time:.2f} seconds") 
-            self.file_path_label.config(text=f"Transcription completed in {elapsed_time:.2f} seconds")
-            with open(f"./audio_transcriptions/{filename}.txt", "w", encoding="utf=8") as f:
-                f.write(transcription)
-        except Exception as e:
-            print(f"Error during transcription: {e}")
-            self.file_path_label.config(text=f"Error: {e}") 
+    #         elapsed_time = time.time() - start_time
+    #         print(f"Transcription completed in {elapsed_time:.2f} seconds") 
+    #         self.file_path_label.config(text=f"Transcription completed in {elapsed_time:.2f} seconds")
+    #         with open(f"./audio_transcriptions/{filename}.txt", "w", encoding="utf=8") as f:
+    #             f.write(transcription)
+    #     except Exception as e:
+    #         print(f"Error during transcription: {e}")
+    #         self.file_path_label.config(text=f"Error: {e}") 
 
-    def get_single_chunk_transcription(self, path):
-        """Returns single chunk text"""
-        with sr.AudioFile(path) as source:
-            audio_listened = self.r.record(source)
-            text = self.r.recognize_google(audio_listened, language=self.selected_language)
+    # def get_single_chunk_transcription(self, path):
+    #     """Returns single chunk text"""
+    #     with sr.AudioFile(path) as source:
+    #         audio_listened = self.r.record(source)
+    #         text = self.r.recognize_google(audio_listened, language=self.selected_language)
 
-        return text
+    #     return text
 
-    def get_full_file_transcription(self, path, filename):
-        """Returns full file text"""
-        sound = AudioSegment.from_file(path)
-        #split when silence > 3000ms, 
-        chunks = split_on_silence(sound, 
-                              min_silence_len = 3000, silence_thresh=sound.dBFS-14, keep_silence=3000)
-        folder_name = "./audio_chunks/"
-        os.makedirs(folder_name, exist_ok=True)
+    # def get_full_file_transcription(self, path, filename):
+    #     """Returns full file text"""
+    #     sound = AudioSegment.from_file(path)
+    #     #split when silence > 3000ms, 
+    #     chunks = split_on_silence(sound, 
+    #                           min_silence_len = 3000, silence_thresh=sound.dBFS-14, keep_silence=3000)
+    #     folder_name = "./audio_chunks/"
+    #     os.makedirs(folder_name, exist_ok=True)
 
-        whole_text=""
+    #     whole_text=""
 
-        for i, audio_chunk in enumerate(chunks, start=1):
-            #create chunk in chunk folder
-            chunk_filename = os.path.join(folder_name, f"{filename}_chunk{i}.wav")
-            audio_chunk.export(chunk_filename, format="wav")
-            try:
-                self.file_path_label.config(text=f"Transcription {filename}_chunk{i} processing...")
-                text = self.get_single_chunk_transcription(chunk_filename)
-            except sr.UnknownValueError as e:
-                print("Error:", str(e))
-            else:
-                text = f"{text.capitalize()}. "
-                print(f"{filename}_chunk{i}.wav: {text} \n")
-                whole_text += "\n"+text
-            finally:
-            #    Remove the chunk file after processing
-                if os.path.exists(chunk_filename):
-                    os.remove(chunk_filename)
-                    print(f"Deleted chunk: {chunk_filename}")
-        return whole_text
+    #     for i, audio_chunk in enumerate(chunks, start=1):
+    #         #create chunk in chunk folder
+    #         chunk_filename = os.path.join(folder_name, f"{filename}_chunk{i}.wav")
+    #         audio_chunk.export(chunk_filename, format="wav")
+    #         try:
+    #             self.file_path_label.config(text=f"Transcription {filename}_chunk{i} processing...")
+    #             text = self.get_single_chunk_transcription(chunk_filename)
+    #         except sr.UnknownValueError as e:
+    #             print("Error:", str(e))
+    #         else:
+    #             text = f"{text.capitalize()}. "
+    #             print(f"{filename}_chunk{i}.wav: {text} \n")
+    #             whole_text += "\n"+text
+    #         finally:
+    #         #    Remove the chunk file after processing
+    #             if os.path.exists(chunk_filename):
+    #                 os.remove(chunk_filename)
+    #                 print(f"Deleted chunk: {chunk_filename}")
+    #     return whole_text
+
+    def transcription_thread(self):
+        if os.path.exists(self.audio_file):
+            threading.Thread(target=process_audio_file, args=(self.audio_file)).start()
     
     def txt_to_pdf_conversion(self):
         if not self.file_txt_path:

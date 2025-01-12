@@ -1,0 +1,2 @@
+SPEAKER_01 [1.65s - 4.82s]: Hej, jestem Piotrek, a to jest moja dziewczyna Alicja.
+SPEAKER_02 [5.45s - 8.10s]: Ха, я стамолица, я стаммагогодна.
