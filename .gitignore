@@ -11,6 +11,7 @@ recorder/audio_chunks
 recorder/audio_transcriptions
 IndicateWhiteBoard/data/
 output.wav 
+data
 recorder/GUI/cache
 recorder/GUI/cache/pyannote/*
 # recorder/whiteboard_data/*
