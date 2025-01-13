@@ -38,8 +38,8 @@ class ScreenRecorderGUI:
         self.max_audio_time = 0
         self.max_video_time = 0        
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"\
-        #Transcription Recorder
-        self.r = sr.Recognizer()
+        #Transcription
+        self.speaker_recognition = 1 # 1 - enabled, 0 - disabled, SPEAKER RECOGNITION!!!
 
         # Set up the GUI window
         self.root = ttk.Window(themename="vapor")
@@ -506,7 +506,7 @@ class ScreenRecorderGUI:
             self.file_path_label.config(text="Transcription already in progress")
             return
         self.file_path_label.config(text="Transcription started...")
-        self.transcription_thread = threading.Thread(target=process_audio_file, args=[self.file_path])
+        self.transcription_thread = threading.Thread(target=process_audio_file, args=[self.file_path, self.speaker_recognition])
         self.transcription_thread.start()
         self.transcription_thread.join()
         self.file_path_label.config(text="")
@@ -570,10 +570,6 @@ class ScreenRecorderGUI:
     #                 os.remove(chunk_filename)
     #                 print(f"Deleted chunk: {chunk_filename}")
     #     return whole_text
-
-    def transcription_thread(self):
-        if os.path.exists(self.file_path):
-            threading.Thread(target=process_audio_file, args=(self.file_path)).start()
     
     def txt_to_pdf_conversion(self):
         if not self.file_txt_path:
@@ -598,8 +594,6 @@ class ScreenRecorderGUI:
             self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
         except Exception as e:
             tk.messagebox.showerror("Error", f"An error occurred: {e}")
-
-
 
     def open_pdf(self):
         if not self.file_pdf_path:
