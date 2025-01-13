@@ -21,38 +21,40 @@ _sample_rate = 16000
 _similarity_threshold = 0.55
 _margin_of_safety = 0.005
 _speaker_registry_file = "speaker_registry.json"
+_speaker_recognition_enabled = True  # New global variable to control speaker recognition
 
 def initialize_transcription(speaker_registry_file="speaker_registry.json",
                              sample_rate=16000,
                              similarity_threshold=0.55, margin_of_safety=0.005):
-        # Load environment variables from .env file
-        load_dotenv()
-        api_key = os.getenv("API_KEY")
+    # Load environment variables from .env file
+    load_dotenv()
+    api_key = os.getenv("API_KEY")
 
-        # Konfiguracja cache
-        venv_dir = os.path.dirname(os.path.abspath(__file__))
-        custom_cache_dir = os.path.join(venv_dir, "cache")
-        os.environ["HF_HOME"] = os.path.join(custom_cache_dir, "huggingface")
-        os.environ["TORCH_HOME"] = os.path.join(custom_cache_dir, "torch")
-        os.environ["PYANNOTE_CACHE"] = os.path.join(custom_cache_dir, "pyannote")
-        os.makedirs(os.environ["HF_HOME"], exist_ok=True)
-        os.makedirs(os.environ["TORCH_HOME"], exist_ok=True)
-        os.makedirs(os.environ["PYANNOTE_CACHE"], exist_ok=True)
+    # Konfiguracja cache
+    venv_dir = os.path.dirname(os.path.abspath(__file__))
+    custom_cache_dir = os.path.join(venv_dir, "cache")
+    os.environ["HF_HOME"] = os.path.join(custom_cache_dir, "huggingface")
+    os.environ["TORCH_HOME"] = os.path.join(custom_cache_dir, "torch")
+    os.environ["PYANNOTE_CACHE"] = os.path.join(custom_cache_dir, "pyannote")
+    os.makedirs(os.environ["HF_HOME"], exist_ok=True)
+    os.makedirs(os.environ["TORCH_HOME"], exist_ok=True)
+    os.makedirs(os.environ["PYANNOTE_CACHE"], exist_ok=True)
 
 
-        global _pipeline, _speaker_recognition, _model, _sample_rate, _similarity_threshold, _margin_of_safety, _speaker_registry_file
-        _speaker_registry_file = speaker_registry_file
-        _sample_rate = sample_rate
-        _similarity_threshold = similarity_threshold
-        _margin_of_safety = margin_of_safety
+    global _pipeline, _speaker_recognition, _model, _sample_rate, _similarity_threshold, _margin_of_safety, _speaker_registry_file
+    _speaker_registry_file = speaker_registry_file
+    _sample_rate = sample_rate
+    _similarity_threshold = similarity_threshold
+    _margin_of_safety = margin_of_safety
 
-        # Inicjalizacja modeli
-        _pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=api_key)
-        _speaker_recognition = SpeakerRecognition.from_hparams(
-            source="speechbrain/spkrec-ecapa-voxceleb",
-            savedir=os.path.join(os.environ["PYANNOTE_CACHE"],
-                                "speechbrain_speaker_rec"))
-        _model = whisper.load_model("large-v2")
+    # Inicjalizacja modeli
+    _pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=api_key)
+    _speaker_recognition = SpeakerRecognition.from_hparams(
+        source="speechbrain/spkrec-ecapa-voxceleb",
+        savedir=os.path.join(os.environ["PYANNOTE_CACHE"],
+                            "speechbrain_speaker_rec"))
+    _model = whisper.load_model("large-v2")
+
 
 # Zarządzanie bazą speakerów
 def load_speaker_registry():
@@ -108,7 +110,7 @@ def identify_speaker(embedding, speaker_registry):
     return new_speaker_id
 
 # Funkcja do diarizacji i transkrypcji
-def diarize_and_transcribe(audio_segment, speaker_registry):
+def diarize_and_transcribe(audio_segment, speaker_registry, enable_speaker_recognition):
     diarization = _pipeline(
         {"uri": "audio", "waveform": torch.tensor(audio_segment).unsqueeze(0), "sample_rate": _sample_rate})
     segments = []
@@ -119,9 +121,14 @@ def diarize_and_transcribe(audio_segment, speaker_registry):
             continue
 
         segment_audio = audio_segment[int(start * _sample_rate):int(end * _sample_rate)]
-        embedding = _speaker_recognition.encode_batch(
-            torch.tensor(segment_audio).unsqueeze(0)).squeeze(0).detach().cpu().numpy()
-        speaker_id = identify_speaker(embedding, speaker_registry)
+        
+        if enable_speaker_recognition:
+            embedding = _speaker_recognition.encode_batch(
+                torch.tensor(segment_audio).unsqueeze(0)).squeeze(0).detach().cpu().numpy()
+            speaker_id = identify_speaker(embedding, speaker_registry)
+        else:
+            speaker_id = "SPEAKER" # Default speaker ID if disabled
+        
         segments.append({"start": start, "end": end, "speaker": speaker_id})
 
     return segments
@@ -149,9 +156,12 @@ def convert_audio_to_16k(audio_data, original_sr, target_sr=16000):
     return resampled_audio
 
 # Przetwarzanie pliku audio
-def process_audio_file(file_path, output_16k_path=None):
+def process_audio_file(file_path, enable_speaker_recognition=1, output_16k_path=None):
     initialize_transcription()
-    print(f"Przetwarzanie pliku audio: {file_path}")
+    global _speaker_recognition_enabled
+    _speaker_recognition_enabled = bool(enable_speaker_recognition)
+    print(f"Przetwarzanie pliku audio: {file_path}, Rozpoznawanie mówców: {'Włączone' if _speaker_recognition_enabled else 'Wyłączone'}")
+
     try:
         audio_data, sr = librosa.load(file_path, sr=None)  # Load with original sample rate
     
@@ -159,8 +169,10 @@ def process_audio_file(file_path, output_16k_path=None):
         audio_16k = convert_audio_to_16k(audio_data, sr, 16000)
     
         speaker_registry = load_speaker_registry()
-        segments = diarize_and_transcribe(audio_16k, speaker_registry)  # Diarize on resampled audio
-        save_speaker_registry(speaker_registry)
+        segments = diarize_and_transcribe(audio_16k, speaker_registry, _speaker_recognition_enabled)  # Pass the flag to diarize function
+        if _speaker_recognition_enabled:
+            save_speaker_registry(speaker_registry)
+
     
         # Generate transcription filename in the same directory as the audio file
         audio_dir = os.path.dirname(file_path)
