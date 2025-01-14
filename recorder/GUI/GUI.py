@@ -184,7 +184,7 @@ class ScreenRecorderGUI:
         button_frame = tk.Frame(self.set_name_window)
         button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
 
-        save_button = tk.Button(button_frame, text="Save", command=lambda: self.save_speakers(data, original_names, entries))
+        save_button = ttk.Button(button_frame, text="Save", bootstyle="outline", command=lambda: self.save_speakers(data, original_names, entries))
         save_button.pack(side=tk.RIGHT)
 
     def open_more_window(self):
@@ -220,7 +220,7 @@ class ScreenRecorderGUI:
     def open_settings_window(self):
         self.settings_window = tk.Toplevel(self.root)
         self.settings_window.title("Settings")
-        self.settings_window.geometry(self.calculate_window_pos(250, 250))
+        self.settings_window.geometry(self.calculate_window_pos(250, 350))
         self.settings_window.transient(self.root)
         self.settings_window.grab_set()
         platforms = ["teams", "zoom", "meet"]
@@ -244,6 +244,20 @@ class ScreenRecorderGUI:
         quality_menu = ttk.Combobox(self.settings_window, textvariable=self.quality, values=quality_options, bootstyle="default")
         quality_menu.pack()
 
+        ttk.Label(self.settings_window, text="Speaker Recognition:", bootstyle="info").pack(pady=5)
+        self.recognition_var = tk.BooleanVar(value=self.speaker_recognition)
+        switchButton = ttk.Checkbutton(
+            self.settings_window,
+            text="Enable Recognition",
+            variable=self.recognition_var,
+            bootstyle="switch"
+        )
+        switchButton.pack()
+        button_frame = tk.Frame(self.settings_window)
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
+        save_button = ttk.Button(button_frame, text="Save", bootstyle="outline", command=self.save_settings)
+        save_button.pack(side=tk.RIGHT)
+
     def save_settings(self):
         selected_platform = self.platforms_var.get()
         self.platform = selected_platform
@@ -254,10 +268,13 @@ class ScreenRecorderGUI:
         selected_quality = self.quality.get()
         self.self_quality = selected_quality
 
+        selected_recognition = self.recognition_var.get()
+        self.speaker_recognition = selected_recognition
         print(f"Settings saved:")
         print(f"Platform: {self.platform}")
         print(f"Max File Size: {self.max_files_size}")
         print(f"Quality: {self.quality}")
+        print(f"Speaker Recognition: {self.speaker_recognition}")
 
         tk.messagebox.showinfo("Settings", "Settings have been saved successfully!")
         self.settings_window.destroy()
