@@ -17,6 +17,7 @@ from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from tkinterPdfViewer import tkinterPdfViewer as pdf
 import subprocess
+from .settings import Settings
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
@@ -29,23 +30,18 @@ class ScreenRecorderGUI:
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
-        self.platform = "teams"
-        self.max_files_size = "0.1GB"
         self.storage_size = 0 # self.max_files_size converted to bytes
-        self.quality = 100
         self.audio_bps = 0
         self.video_bps = 0
         self.max_audio_time = 0
         self.max_video_time = 0        
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"\
-        #Transcription
-        self.speaker_recognition = 1 # 1 - enabled, 0 - disabled, SPEAKER RECOGNITION!!!
 
         # Set up the GUI window
         self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
         self.root.geometry("450x550")
-
+        self.Settings = Settings(self.root, "teams", "0.1GB", 100, True )
         self.create_widgets()
         self.root.after(200, self.update_status)
         self.root.mainloop()
@@ -105,7 +101,7 @@ class ScreenRecorderGUI:
 
         more_button = ttk.Button(settings_frame, text="More", bootstyle="success-outline", command=self.open_more_window)
         more_button.pack(side=tk.LEFT)
-        settings_button = ttk.Button(settings_frame, text="Settings", bootstyle="light-outline", command=self.open_settings_window)
+        settings_button = ttk.Button(settings_frame, text="Settings", bootstyle="light-outline", command=lambda: self.Settings.open_settings_window(self.calculate_window_pos))
         settings_button.pack(side=tk.RIGHT)
 
     def calculate_window_pos(self, window_width, window_height):
@@ -217,67 +213,7 @@ class ScreenRecorderGUI:
         open_pdf_button = ttk.Button(self.more_window, text="Open", bootstyle="primary", command=self.open_pdf)
         open_pdf_button.pack()
 
-    def open_settings_window(self):
-        self.settings_window = tk.Toplevel(self.root)
-        self.settings_window.title("Settings")
-        self.settings_window.geometry(self.calculate_window_pos(250, 350))
-        self.settings_window.transient(self.root)
-        self.settings_window.grab_set()
-        platforms = ["teams", "zoom", "meet"]
-        max_files_size = ["0.1GB", "10GB", "5GB", "3GB"]
-        quality_options = ["100", "90", "80", "70", "60", "50", "40", "30", "20", "10"]
 
-        ttk.Label(self.settings_window, text="Platform:", bootstyle="info").pack(pady=5)
-        self.platforms_var = ttk.StringVar(value=platforms[0])
-        platforms_menu = ttk.Combobox(self.settings_window, textvariable=self.platforms_var, values=platforms, bootstyle="default")
-        platforms_menu.pack()
-
-        # Max File Size Dropdown
-        ttk.Label(self.settings_window, text="Max File Size:", bootstyle="info").pack(pady=5)
-        self.max_files_size_var = ttk.StringVar(value=max_files_size[0])
-        max_files_size_menu = ttk.Combobox(self.settings_window, textvariable=self.max_files_size_var, values=max_files_size, bootstyle="default")
-        max_files_size_menu.pack()
-
-        # Quality Dropdown
-        ttk.Label(self.settings_window, text="Quality:", bootstyle="info").pack(pady=5)
-        self.quality = ttk.StringVar(value=quality_options[0])
-        quality_menu = ttk.Combobox(self.settings_window, textvariable=self.quality, values=quality_options, bootstyle="default")
-        quality_menu.pack()
-
-        ttk.Label(self.settings_window, text="Speaker Recognition:", bootstyle="info").pack(pady=5)
-        self.recognition_var = tk.BooleanVar(value=self.speaker_recognition)
-        switchButton = ttk.Checkbutton(
-            self.settings_window,
-            text="Enable Recognition",
-            variable=self.recognition_var,
-            bootstyle="switch"
-        )
-        switchButton.pack()
-        button_frame = tk.Frame(self.settings_window)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
-        save_button = ttk.Button(button_frame, text="Save", bootstyle="outline", command=self.save_settings)
-        save_button.pack(side=tk.RIGHT)
-
-    def save_settings(self):
-        selected_platform = self.platforms_var.get()
-        self.platform = selected_platform
-
-        selected_max_file_size = self.max_files_size_var.get()
-        self.max_files_size = selected_max_file_size
-        
-        selected_quality = self.quality.get()
-        self.self_quality = selected_quality
-
-        selected_recognition = self.recognition_var.get()
-        self.speaker_recognition = selected_recognition
-        print(f"Settings saved:")
-        print(f"Platform: {self.platform}")
-        print(f"Max File Size: {self.max_files_size}")
-        print(f"Quality: {self.quality}")
-        print(f"Speaker Recognition: {self.speaker_recognition}")
-
-        tk.messagebox.showinfo("Settings", "Settings have been saved successfully!")
-        self.settings_window.destroy()
     def update_status(self):
         """Update the status indicator for recording."""
         if self.is_recording:
@@ -288,9 +224,9 @@ class ScreenRecorderGUI:
 
     def compare_img_with_default(self, imgPath):
         """comparing two imgs with same resolution"""
-        if self.platform == "teams":
+        if self.Settings.platform == "teams":
             self.defaultImg = os.getcwd() + r"/GUI/teams.png"
-        elif self.platform == "zoom":
+        elif self.Settings.platform == "zoom":
             self.defaultImg = os.getcwd() + r"/GUI/zoom.png"
         else:
             self.defaultImg = os.getcwd() + r"/GUI/meet.png"
@@ -358,11 +294,11 @@ class ScreenRecorderGUI:
 
     def calculate_self_storage_size(self):
         # Storage size converted to bytes:
-        if self.max_files_size == "0.1GB":
+        if self.Settings.max_files_size == "0.1GB":
             self.storage_size = 0.1 * 1024 * 1024 * 1024
-        elif self.max_files_size == "10GB":
+        elif self.Settings.max_files_size == "10GB":
             self.storage_size = 10 * 1024 * 1024 * 1024
-        elif self.max_files_size == "5GB":
+        elif self.Settings.max_files_size == "5GB":
             self.storage_size = 5 * 1024 * 1024 * 1024
         else:
             self.storage_size = 3 * 1024 * 1024 * 1024
@@ -383,7 +319,7 @@ class ScreenRecorderGUI:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         file_path = os.path.join(os.getcwd(), "data", f"{name}.jpeg")
         # Save the sample image
-        cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+        cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
         # Calculate bytes of 1 sec video withut audio
         self.video_bps = 4*os.path.getsize(file_path) # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
         # Calculate bytes per second
@@ -491,12 +427,12 @@ class ScreenRecorderGUI:
                 file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
                 current_time = time.time()
                 if current_time - last_comparison_time >= 5: #every 5 sec check
-                    cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                    cv2.imwrite(file_path,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
                     similarity = self.compare_img_with_default(file_path)
                     print(f"Similarity with default image: {similarity:.2f}%")
                     last_comparison_time = current_time
                 if similarity is not None and similarity > 15: #similiarity set to
-                    cv2.imwrite(file_path_whiteboard,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.quality)])
+                    cv2.imwrite(file_path_whiteboard,frame,[cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
                 i+=1
             elif jpeg_count > 4*self.max_video_time:
                 print("Max video time reached")
@@ -523,7 +459,7 @@ class ScreenRecorderGUI:
             self.file_path_label.config(text="Transcription already in progress")
             return
         self.file_path_label.config(text="Transcription started...")
-        self.transcription_thread = threading.Thread(target=process_audio_file, args=[self.file_path, self.speaker_recognition])
+        self.transcription_thread = threading.Thread(target=process_audio_file, args=[self.file_path, self.Settings.recognition])
         self.transcription_thread.start()
         self.transcription_thread.join()
         self.file_path_label.config(text="")
