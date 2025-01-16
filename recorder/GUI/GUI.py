@@ -18,11 +18,11 @@ from pydub.silence import split_on_silence
 from tkinterPdfViewer import tkinterPdfViewer as pdf
 import subprocess
 from .settings import Settings
+from .more import More
+from .setNames import SetNames
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
-        self.file_txt_path=""
-        self.file_pdf_path=""
         self.selected_language = ""
         self.is_recording = False
         self.red_dot = None
@@ -41,7 +41,13 @@ class ScreenRecorderGUI:
         self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
         self.root.geometry("450x550")
+        # Settings 
         self.Settings = Settings(self.root, "teams", "0.1GB", 100, True )
+        # More
+        self.More = More(self.root)
+        # SetNames
+        self.SetNames = SetNames(self.root)
+
         self.create_widgets()
         self.root.after(200, self.update_status)
         self.root.mainloop()
@@ -93,13 +99,13 @@ class ScreenRecorderGUI:
         transcription_frame.pack(pady=10)
         transcript_button = tk.Button(transcription_frame, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
         transcript_button.pack(padx=5)
-        set_speaker_name_button = tk.Button(transcription_frame, text="Set names", command=self.open_set_name_window, bg="blue", fg="white", width=15)
+        set_speaker_name_button = tk.Button(transcription_frame, text="Set names", command=lambda: self.SetNames.open_set_name_window(self.calculate_window_pos), bg="blue", fg="white", width=15)
         transcript_button.pack(side=tk.LEFT, padx=10)
         set_speaker_name_button.pack(side=tk.LEFT, padx=10)
         settings_frame = tk.Frame(self.root)
         settings_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        more_button = ttk.Button(settings_frame, text="More", bootstyle="success-outline", command=self.open_more_window)
+        more_button = ttk.Button(settings_frame, text="More", bootstyle="success-outline", command=lambda: self.More.open_more_window(self.calculate_window_pos))
         more_button.pack(side=tk.LEFT)
         settings_button = ttk.Button(settings_frame, text="Settings", bootstyle="light-outline", command=lambda: self.Settings.open_settings_window(self.calculate_window_pos))
         settings_button.pack(side=tk.RIGHT)
@@ -113,107 +119,6 @@ class ScreenRecorderGUI:
         pos_y = root_y + (root_height // 2) - (window_height // 2)
         return f"{window_width}x{window_height}+{pos_x}+{pos_y}"
     
-    def load_speakers(self):
-        try:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json") as file:
-                data = json.load(file)
-                return list(data.keys())
-        except(FileNotFoundError, json.JSONDecodeError):
-            return []
-        
-    def save_speakers(self, data, original_names, entries):
-        new_names = [entry.get() for entry in entries]
-        updated_data = {new_name: data[speaker] for new_name, speaker in zip(new_names, original_names)}
-    
-        with open(os.getcwd() + r"/recorder/speaker_registry.json", "w") as file:
-            json.dump(updated_data, file, indent=4)
-    
-        messagebox.showinfo("Zapisano", "Nazwy speakerów zostały zapisane.")
-
-    def open_set_name_window(self):
-        self.set_name_window = tk.Toplevel(self.root)
-        self.set_name_window.title("Set Name")
-        self.set_name_window.geometry(self.calculate_window_pos(350, 380))
-        self.set_name_window.transient(self.root)
-        self.set_name_window.grab_set()
-        ttk.Label(self.set_name_window, text="Set recognised names", font=("Arial", 12)).pack(pady=5)
-
-        container = tk.Frame(self.set_name_window)
-        container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        canvas = tk.Canvas(container, width=150)
-        scrollbar = tk.Scrollbar(container, orient=tk.VERTICAL, command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-
-        # Konfiguracja scrollbara
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        data = {}
-        original_names = self.load_speakers()
-        entries = []
-        
-        if original_names:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json", "r") as file:
-                data = json.load(file)
-
-        for name in original_names:
-            frame = tk.Frame(scrollable_frame)
-            frame.pack(pady=2)
-
-            label = tk.Label(frame, text="Speaker:")
-            label.pack(side=tk.LEFT, padx=5)
-
-            entry = tk.Entry(frame)
-            entry.insert(0, name)  # Wstawia aktualną nazwę speakera
-            entry.pack(side=tk.LEFT)
-            entries.append(entry)
-
-        button_frame = tk.Frame(self.set_name_window)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
-
-        save_button = ttk.Button(button_frame, text="Save", bootstyle="outline", command=lambda: self.save_speakers(data, original_names, entries))
-        save_button.pack(side=tk.RIGHT)
-
-    def open_more_window(self):
-        self.more_window = tk.Toplevel(self.root)
-        self.more_window.title("More")
-        self.more_window.geometry(self.calculate_window_pos(350, 350))
-        self.more_window.transient(self.root)
-        self.more_window.grab_set()
-        ttk.Label(self.more_window, text="Txt to pdf coverter", font=("Arial", 12)).pack(pady=5)
-        ttk.Label(self.more_window, text="Select .txt file:", font=("Arial", 10)).pack(pady=10)
-        file_txt_path_button = tk.Button(self.more_window, text="Browse", command=self.select_txt_file, bg="blue", fg="white", width=15)
-        file_txt_path_button.pack(padx=5)
-        if self.file_txt_path:
-            self.file_txt_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_txt_path}", bootstyle="success", font=("Arial", 8))
-        else:
-            self.file_txt_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="danger", font=("Arial", 8))
-        self.file_txt_path_label.pack(pady=5)
-        conversion_button = ttk.Button(self.more_window, text="Convert", bootstyle="primary", command=self.txt_to_pdf_conversion)
-        conversion_button.pack(pady=(5,20))
-
-        ttk.Label(self.more_window, text="Open pdf", font=("Arial", 12)).pack(pady=5)
-        ttk.Label(self.more_window, text="Select .pdf file:", font=("Arial", 10)).pack(pady=10)
-        file_pdf_path_button = tk.Button(self.more_window, text="Browse", command=self.select_pdf_file, bg="blue", fg="white", width=15)
-        file_pdf_path_button.pack(padx=5)
-        if self.file_pdf_path:
-            self.file_pdf_path_label = ttk.Label(self.more_window, text=f"Selected: {self.file_pdf_path}", bootstyle="success", font=("Arial", 8))
-        else:
-            self.file_pdf_path_label = ttk.Label(self.more_window, text="No file selected", bootstyle="danger", font=("Arial", 8))
-        self.file_pdf_path_label.pack(pady=5)
-        open_pdf_button = ttk.Button(self.more_window, text="Open", bootstyle="primary", command=self.open_pdf)
-        open_pdf_button.pack()
-
-
     def update_status(self):
         """Update the status indicator for recording."""
         if self.is_recording:
@@ -261,29 +166,7 @@ class ScreenRecorderGUI:
             return
         self.file_path = filedialog.askopenfilename(filetypes=[("Audio files", "*.wav")])
         self.file_path_label.config(text=f"Selected: {self.file_path}", bootstyle="success")
-    def select_txt_file(self):
-        """Open a file dialog to select a txt file and store its path."""
-        try:
-            self.file_txt_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
-            if self.file_txt_path:
-                self.file_txt_path_label.config(text=f"Selected: {self.file_txt_path}", bootstyle="success")
-            else:
-                self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
-        except Exception as e:
-            print(f"Error during file selection: {e}")
-            messagebox.showerror("Error", f"An error occurred: {e}")
-    def select_pdf_file(self):
-        """Open a file dialog to select a pdf file and store its path."""
-        try:
-            self.file_pdf_path = filedialog.askopenfilename(filetypes=[("Pdf Files", "*.pdf")])
-            if self.file_pdf_path:
-                self.file_pdf_path_label.config(text=f"Selected: {self.file_pdf_path}", bootstyle="success")
-            else:
-                self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
-        except Exception as e:
-            print(f"Error during file selection: {e}")
-            messagebox.showerror("Error", f"An error occurred: {e}")
-
+    
     def select_language(self, language):
         """Set the selected language."""
         if self.transcription_thread and self.transcription_thread.is_alive():
@@ -523,45 +406,3 @@ class ScreenRecorderGUI:
     #                 os.remove(chunk_filename)
     #                 print(f"Deleted chunk: {chunk_filename}")
     #     return whole_text
-    
-    def txt_to_pdf_conversion(self):
-        if not self.file_txt_path:
-            tk.messagebox.showerror("Error", "No .txt file selected!")
-            return
-        output_pdf_path = self.file_txt_path.rsplit('.', 1)[0] + ".pdf"
-        try:
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size = 12)
-            with open(self.file_txt_path, "r", encoding="utf-8") as file:
-                for line in file:
-                    words = line.strip().split() 
-                    while words:
-                        segment = words[:15] 
-                        words = words[15:] 
-                        pdf.cell(200, 10, txt=" ".join(segment), ln=True)
-
-            pdf.output(output_pdf_path)
-            tk.messagebox.showinfo("Success", f"PDF saved as {output_pdf_path}")
-            self.file_txt_path = ""
-            self.file_txt_path_label.config(text="No file selected", bootstyle="danger")
-        except Exception as e:
-            tk.messagebox.showerror("Error", f"An error occurred: {e}")
-
-    def open_pdf(self):
-        if not self.file_pdf_path:
-            tk.messagebox.showerror("Error", "No PDF file selected!")
-            return
-
-        if not os.path.exists(self.file_pdf_path):
-
-            tk.messagebox.showerror("Error", "PDF file not found!")
-            return
-        self.pdf_window = tk.Toplevel(self.more_window)
-        self.pdf_window.title("PDF Viewer")
-        self.pdf_window.geometry(self.calculate_window_pos(600, 600))
-    
-        d = pdf.ShowPdf().pdf_view(self.pdf_window, pdf_location=self.file_pdf_path, width=100, height=100)
-        d.pack(expand=True, fill="both")
-        self.file_pdf_path = ""
-        self.file_pdf_path_label.config(text="No file selected", bootstyle="danger")
