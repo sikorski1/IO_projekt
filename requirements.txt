@@ -220,6 +220,7 @@ torchaudio
 torch-audiomentations
 torchmetrics
 torchvision
+transformers
 tqdm
 ttkbootstrap
 typer

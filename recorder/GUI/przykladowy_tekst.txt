@@ -1,0 +1,1 @@
+To jest przykładowy tekst. Chcemy go podsumować. Jest to tekst do testów na podstawie zadania z zapytań. Zobaczymy czy kod działa.

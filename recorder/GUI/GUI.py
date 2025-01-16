@@ -40,6 +40,9 @@ class ScreenRecorderGUI:
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"\
         #Transcription
         self.speaker_recognition = 1 # 1 - enabled, 0 - disabled, SPEAKER RECOGNITION!!!
+        #Summarization variables
+        self.min_length = 4
+        self.max_length = 2
 
         # Set up the GUI window
         self.root = ttk.Window(themename="vapor")
