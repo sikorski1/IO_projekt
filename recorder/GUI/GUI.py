@@ -19,6 +19,7 @@ from tkinterPdfViewer import tkinterPdfViewer as pdf
 import subprocess
 from .settings import Settings
 from .more import More
+from .setNames import SetNames
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
@@ -44,6 +45,8 @@ class ScreenRecorderGUI:
         self.Settings = Settings(self.root, "teams", "0.1GB", 100, True )
         # More
         self.More = More(self.root)
+        # SetNames
+        self.SetNames = SetNames(self.root)
 
         self.create_widgets()
         self.root.after(200, self.update_status)
@@ -96,7 +99,7 @@ class ScreenRecorderGUI:
         transcription_frame.pack(pady=10)
         transcript_button = tk.Button(transcription_frame, text="Transcript File", command=self.open_transcription_thread, bg="blue", fg="white", width=15)
         transcript_button.pack(padx=5)
-        set_speaker_name_button = tk.Button(transcription_frame, text="Set names", command=self.open_set_name_window, bg="blue", fg="white", width=15)
+        set_speaker_name_button = tk.Button(transcription_frame, text="Set names", command=lambda: self.SetNames.open_set_name_window(self.calculate_window_pos), bg="blue", fg="white", width=15)
         transcript_button.pack(side=tk.LEFT, padx=10)
         set_speaker_name_button.pack(side=tk.LEFT, padx=10)
         settings_frame = tk.Frame(self.root)
@@ -116,76 +119,6 @@ class ScreenRecorderGUI:
         pos_y = root_y + (root_height // 2) - (window_height // 2)
         return f"{window_width}x{window_height}+{pos_x}+{pos_y}"
     
-    def load_speakers(self):
-        try:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json") as file:
-                data = json.load(file)
-                return list(data.keys())
-        except(FileNotFoundError, json.JSONDecodeError):
-            return []
-        
-    def save_speakers(self, data, original_names, entries):
-        new_names = [entry.get() for entry in entries]
-        updated_data = {new_name: data[speaker] for new_name, speaker in zip(new_names, original_names)}
-    
-        with open(os.getcwd() + r"/recorder/speaker_registry.json", "w") as file:
-            json.dump(updated_data, file, indent=4)
-    
-        messagebox.showinfo("Zapisano", "Nazwy speakerów zostały zapisane.")
-
-    def open_set_name_window(self):
-        self.set_name_window = tk.Toplevel(self.root)
-        self.set_name_window.title("Set Name")
-        self.set_name_window.geometry(self.calculate_window_pos(350, 380))
-        self.set_name_window.transient(self.root)
-        self.set_name_window.grab_set()
-        ttk.Label(self.set_name_window, text="Set recognised names", font=("Arial", 12)).pack(pady=5)
-
-        container = tk.Frame(self.set_name_window)
-        container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        canvas = tk.Canvas(container, width=150)
-        scrollbar = tk.Scrollbar(container, orient=tk.VERTICAL, command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-
-        # Konfiguracja scrollbara
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        data = {}
-        original_names = self.load_speakers()
-        entries = []
-        
-        if original_names:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json", "r") as file:
-                data = json.load(file)
-
-        for name in original_names:
-            frame = tk.Frame(scrollable_frame)
-            frame.pack(pady=2)
-
-            label = tk.Label(frame, text="Speaker:")
-            label.pack(side=tk.LEFT, padx=5)
-
-            entry = tk.Entry(frame)
-            entry.insert(0, name)  # Wstawia aktualną nazwę speakera
-            entry.pack(side=tk.LEFT)
-            entries.append(entry)
-
-        button_frame = tk.Frame(self.set_name_window)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
-
-        save_button = ttk.Button(button_frame, text="Save", bootstyle="outline", command=lambda: self.save_speakers(data, original_names, entries))
-        save_button.pack(side=tk.RIGHT)
-
     def update_status(self):
         """Update the status indicator for recording."""
         if self.is_recording:
