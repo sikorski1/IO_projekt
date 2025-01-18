@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, PhotoImage
+from tkinter import filedialog, messagebox
 import ttkbootstrap as ttk
 import threading
 import os
@@ -8,26 +8,19 @@ import pyautogui
 import cv2
 import glob
 import numpy as np
-import json
-import speech_recognition as sr
-from .audio import start_recording_audio, stop_recording_audio  # Assuming you have this file with functions
-from .transcription import process_audio_file
-from fpdf import FPDF
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
-from tkinterPdfViewer import tkinterPdfViewer as pdf
-import subprocess
-from .settings import Settings
-from .more import More
-from .setNames import SetNames
+import queue
+from GUI.audio import start_recording_audio, stop_recording_audio, init_transcription_queue, process_transcription_queue
+from GUI.transcription import process_audio_file
+from GUI.settings import Settings
+from GUI.more import More
+from GUI.setNames import SetNames
 
 class ScreenRecorderGUI:
     def __init__(self):
         self.file_path = ""
-        self.selected_language = ""
+        self.selected_language = "en-US"  # Default language
         self.is_recording = False
         self.red_dot = None
-        self.transcription_thread = None
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
@@ -52,13 +45,21 @@ class ScreenRecorderGUI:
         self.audio_thread = None
         self.stop_audio_event = threading.Event()  # Event to signal audio thread to stop
 
+        # Initialize transcription queue and thread
+        self.transcription_queue = queue.Queue()
+        init_transcription_queue(self.transcription_queue)
+        self.transcription_thread = threading.Thread(target=process_transcription_queue, args=(self.transcription_queue,), daemon=True)
+        self.transcription_thread.start()
+
         self.create_widgets()
         self.root.after(200, self.update_status)
         self.root.mainloop()
 
     def create_widgets(self):
         # Recording Indicator
-        tk.Label(self.root, text="Recording Status:", font=("Arial", 14)).pack(pady=20)
+        tk.Label(self.root, text="Recording Status:", font=("Arial", 14)).pack(
+            pady=20
+        )
         self.red_dot = tk.Label(self.root, bg="gray", width=5, height=2)
         self.red_dot.pack(pady=10)
 
@@ -88,33 +89,8 @@ class ScreenRecorderGUI:
         )
         stop_button.pack(side=tk.LEFT, padx=5)
 
-        # File Path Input and Transcript Button
-        ttk.Label(self.root, text="File Transcription", font=("Arial", 14)).pack(
-            pady=10
-        )
-
-        ttk.Label(self.root, text="Select .wav file:", font=("Arial", 12)).pack(
-            pady=10
-        )
-        file_path_button = tk.Button(
-            self.root,
-            text="Browse",
-            command=self.select_file,
-            bg="blue",
-            fg="white",
-            width=15,
-        )
-        file_path_button.pack(padx=5)
-
-        self.file_path_label = ttk.Label(
-            self.root, text="No file selected", bootstyle="danger", font=("Arial", 8)
-        )
-        self.file_path_label.pack(pady=5)
-
         # Language Selection
-        ttk.Label(self.root, text="Select Language:", font=("Arial", 12)).pack(
-            pady=10
-        )
+        tk.Label(self.root, text="Select Language:", font=("Arial", 12)).pack(pady=10)
 
         language_frame = tk.Frame(self.root)
         language_frame.pack()
@@ -135,36 +111,13 @@ class ScreenRecorderGUI:
         )
         english_button.pack(side=tk.LEFT, padx=10)
 
-        self.language_label = ttk.Label(
+        self.language_label = tk.Label(
             self.root,
-            text="No language selected",
-            bootstyle="danger",
+            text=f"Selected Language: {self.selected_language}",
             font=("Arial", 8),
         )
         self.language_label.pack(pady=10)
-        transcription_frame = tk.Frame(self.root)
-        transcription_frame.pack(pady=10)
-        transcript_button = tk.Button(
-            transcription_frame,
-            text="Transcript File",
-            command=self.open_transcription_thread,
-            bg="blue",
-            fg="white",
-            width=15,
-        )
-        transcript_button.pack(padx=5)
-        set_speaker_name_button = tk.Button(
-            transcription_frame,
-            text="Set names",
-            command=lambda: self.SetNames.open_set_name_window(
-                self.calculate_window_pos
-            ),
-            bg="blue",
-            fg="white",
-            width=15,
-        )
-        transcript_button.pack(side=tk.LEFT, padx=10)
-        set_speaker_name_button.pack(side=tk.LEFT, padx=10)
+
         settings_frame = tk.Frame(self.root)
         settings_frame.pack(fill=tk.X, padx=10, pady=10)
 
@@ -202,30 +155,11 @@ class ScreenRecorderGUI:
             self.red_dot.config(bg="gray")
         self.root.after(200, self.update_status)
 
-    def select_file(self):
-        """Open a file dialog to select a file and store its path."""
-        if self.transcription_thread and self.transcription_thread.is_alive():
-            self.file_path_label.config(
-                text="Transcription already in progress", bootstyle="danger"
-            )
-            return
-        self.file_path = filedialog.askopenfilename(
-            filetypes=[("Audio files", "*.wav")]
-        )
-        self.file_path_label.config(
-            text=f"Selected: {self.file_path}", bootstyle="success"
-        )
-
     def select_language(self, language):
         """Set the selected language."""
-        if self.transcription_thread and self.transcription_thread.is_alive():
-            self.language_label.config(
-                text="Transcription already in progress", bootstyle="danger"
-            )
-            return
         self.selected_language = language
         self.language_label.config(
-            text=f"Selected Language: {self.selected_language}", bootstyle="success"
+            text=f"Selected Language: {self.selected_language}",
         )
 
     def calculate_self_storage_size(self):
@@ -294,7 +228,7 @@ class ScreenRecorderGUI:
         threading.Thread(target=self.record_screen, daemon=True).start()  # Video thread
 
     def stop_recording(self):
-        """Stop recording process."""
+        """Stop recording process and transcribe audio."""
         if not self.is_recording:
             messagebox.showinfo("Info", "No recording in progress!")
             return
@@ -318,12 +252,10 @@ class ScreenRecorderGUI:
             meeting_start_time = time.strftime("%H-%M-%S")
             output_dir = os.path.join(os.getcwd(), "..", "meetings", current_date)
             os.makedirs(output_dir, exist_ok=True)
-
         else:
             print("No screenshots captured.")
 
-        # Assuming this stops audio recording
-        messagebox.showinfo("Info", f"Recording saved as {self.filename}")
+        messagebox.showinfo("Info", "Recording saved")
 
     def count_jpeg_files_glob(self, folder_path="whiteboard_data"):
         """Zlicza liczbę plików JPEG w danym folderze używając glob."""
@@ -337,7 +269,7 @@ class ScreenRecorderGUI:
         """
         Compares the current frame with the previous frame using absolute difference.
         """
-        threshold = 50
+        threshold = 60
         if frame1 is None or frame2 is None:
             # Handle cases where one or both frames are None (e.g., at the beginning)
             return 0.0
@@ -389,13 +321,13 @@ class ScreenRecorderGUI:
                     os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg"
                 )
                 current_time = time.time()
-                if i==0:
+                if i == 0:
                     cv2.imwrite(
-                            file_path_whiteboard,
-                            frame,
-                            [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
+                        file_path_whiteboard,
+                        frame,
+                        [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
                     )
-                elif current_time - last_comparison_time >= 1:  # every 5 sec check
+                elif current_time - last_comparison_time >= 1:  # every 1 sec check
                     if prev_frame is not None and self.compare_frames(
                         prev_frame, frame
                     ):  # if frame change
@@ -405,7 +337,9 @@ class ScreenRecorderGUI:
                             [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
                         )
                         file_path_audio = os.path.join(
-                            os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav"
+                            os.getcwd(),
+                            "whiteboard_data",
+                            f"{name}_whiteboard.{i}.wav",
                         )
                         self.audio_output_file_path = file_path_audio
 
@@ -419,6 +353,8 @@ class ScreenRecorderGUI:
                             args=(
                                 file_path_audio,
                                 self.stop_audio_event,
+                                self.selected_language,
+                                self.transcription_queue  # Pass the queue
                             ),
                             daemon=True,
                         )
@@ -455,28 +391,3 @@ class ScreenRecorderGUI:
             self.stop_audio_event.set()  # Signal the thread to stop
             self.audio_thread.join()  # Wait for the thread to finish
             self.audio_thread = None
-
-    def open_transcription_thread(self):
-        """Opens transcription thread"""
-        if not self.file_path:
-            self.file_path_label.config(text="No file selected")
-            return
-        if not self.selected_language:
-            self.file_path_label.config(text="No language provided")
-            return
-        if not self.file_path.lower().endswith(".wav"):
-            self.file_path_label.config(
-                text="Invalid file type. Please select a .wav file."
-            )
-            return
-        if self.transcription_thread and self.transcription_thread.is_alive():
-            self.file_path_label.config(text="Transcription already in progress")
-            return
-        self.file_path_label.config(text="Transcription started...")
-        self.transcription_thread = threading.Thread(
-            target=process_audio_file, args=[self.file_path, self.Settings.recognition]
-        )
-        self.transcription_thread.start()
-        self.transcription_thread.join()
-        self.file_path_label.config(text="")
-        tk.messagebox.showinfo("Info", "Finished transcription thread")
