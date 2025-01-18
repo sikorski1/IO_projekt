@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import messagebox
 import ttkbootstrap as ttk
 import threading
 import os
@@ -11,13 +11,14 @@ import numpy as np
 import queue
 from GUI.audio import start_recording_audio, stop_recording_audio, init_transcription_queue, process_transcription_queue
 from GUI.transcription import process_audio_file
+import subprocess
 from GUI.settings import Settings
 from GUI.more import More
 from GUI.setNames import SetNames
+from fpdf import FPDF
 
 class ScreenRecorderGUI:
     def __init__(self):
-        self.file_path = ""
         self.selected_language = "en-US"  # Default language
         self.is_recording = False
         self.red_dot = None
@@ -228,7 +229,7 @@ class ScreenRecorderGUI:
         threading.Thread(target=self.record_screen, daemon=True).start()  # Video thread
 
     def stop_recording(self):
-        """Stop recording process and transcribe audio."""
+        """Stop recording process, wait for transcription to finish, and generate PDF."""
         if not self.is_recording:
             messagebox.showinfo("Info", "No recording in progress!")
             return
@@ -255,6 +256,11 @@ class ScreenRecorderGUI:
         else:
             print("No screenshots captured.")
 
+        # Wait for all transcription tasks to complete
+        self.transcription_queue.join()
+
+        self.generate_pdf_report(data_dir, output_dir, meeting_start_time)
+
         messagebox.showinfo("Info", "Recording saved")
 
     def count_jpeg_files_glob(self, folder_path="whiteboard_data"):
@@ -269,7 +275,7 @@ class ScreenRecorderGUI:
         """
         Compares the current frame with the previous frame using absolute difference.
         """
-        threshold = 60
+        threshold = 70
         if frame1 is None or frame2 is None:
             # Handle cases where one or both frames are None (e.g., at the beginning)
             return 0.0
@@ -391,3 +397,28 @@ class ScreenRecorderGUI:
             self.stop_audio_event.set()  # Signal the thread to stop
             self.audio_thread.join()  # Wait for the thread to finish
             self.audio_thread = None
+    
+    def generate_pdf_report(self, data_dir, output_dir, meeting_start_time):
+        """Generates a PDF report with images and transcriptions."""
+        pdf = FPDF()
+        pdf.set_title(f"Meeting Report {meeting_start_time}")
+
+        image_files = sorted(glob.glob(os.path.join(data_dir, "*.jpeg")))
+        for img_file in image_files:
+            pdf.add_page()
+            pdf.image(img_file, x=10, y=10, w=190)  # Adjust position and size as needed
+
+            # Corresponding transcription file
+            txt_file = os.path.splitext(img_file)[0] + ".txt"
+            if os.path.exists(txt_file):
+                pdf.set_font("Arial", size=12)
+                y_position = 150  # Adjust vertical position for text below image
+                with open(txt_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        pdf.set_xy(10, y_position)
+                        pdf.multi_cell(0, 10, line.strip())  # Adjust cell height as needed
+                        y_position += 10 # Move to the next line position
+
+        pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
+        pdf.output(pdf_output_path)
+        print(f"PDF report generated: {pdf_output_path}")
