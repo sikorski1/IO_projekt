@@ -275,7 +275,7 @@ class ScreenRecorderGUI:
         """
         Compares the current frame with the previous frame using absolute difference.
         """
-        threshold = 70
+        threshold = 60 # if threshold is higher than similarity than return true and save screenshot + split audio
         if frame1 is None or frame2 is None:
             # Handle cases where one or both frames are None (e.g., at the beginning)
             return 0.0
