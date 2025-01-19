@@ -16,6 +16,7 @@ from GUI.settings import Settings
 from GUI.more import More
 from GUI.setNames import SetNames
 from fpdf import FPDF
+from GUI.summary import summarize_text_gemini
 
 class ScreenRecorderGUI:
     def __init__(self):
@@ -399,7 +400,7 @@ class ScreenRecorderGUI:
             self.audio_thread = None
     
     def generate_pdf_report(self, data_dir, output_dir, meeting_start_time):
-        """Generates a PDF report with images and transcriptions."""
+        """Generates a PDF report with images, transcriptions, and a summary."""
         pdf = FPDF()
         pdf.set_title(f"Meeting Report {meeting_start_time}")
 
@@ -418,6 +419,26 @@ class ScreenRecorderGUI:
                         pdf.set_xy(10, y_position)
                         pdf.multi_cell(0, 10, line.strip())  # Adjust cell height as needed
                         y_position += 10 # Move to the next line position
+
+        # Generate summary using summarize_text_gemini
+        summary_output_dir = os.path.join(output_dir, "summary_output") # Generate output dir for summary
+        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir)
+        
+        # Add summary to the PDF
+        if summary_file_path:
+        
+            pdf.add_page()
+            pdf.set_font("Arial", size=14)
+            pdf.cell(0, 10, "Meeting Summary", ln=True, align="C")
+
+            pdf.set_font("Arial", size=12)
+            y_position = 25
+            with open(summary_file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    pdf.set_xy(10, y_position)
+                    pdf.multi_cell(0, 10, line.strip())
+                    y_position += 10
+
 
         pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
         pdf.output(pdf_output_path)
