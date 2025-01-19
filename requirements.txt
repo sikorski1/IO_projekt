@@ -235,3 +235,4 @@ whispercpp
 wrapt
 yarl
 zope.interface
+google-generativeai

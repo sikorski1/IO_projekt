@@ -17,6 +17,11 @@ from GUI.more import More
 from GUI.setNames import SetNames
 from fpdf import FPDF
 from GUI.summary import summarize_text_gemini
+from fpdf import FPDF, HTMLMixin
+import unicodedata
+
+class MyFPDF(FPDF, HTMLMixin):
+    pass
 
 class ScreenRecorderGUI:
     def __init__(self):
@@ -400,46 +405,58 @@ class ScreenRecorderGUI:
             self.audio_thread = None
     
     def generate_pdf_report(self, data_dir, output_dir, meeting_start_time):
-        """Generates a PDF report with images, transcriptions, and a summary."""
-        pdf = FPDF()
+        pdf = MyFPDF()
         pdf.set_title(f"Meeting Report {meeting_start_time}")
+        pdf.set_author("Your App Name")
 
-        image_files = sorted(glob.glob(os.path.join(data_dir, "*.jpeg")))
-        for img_file in image_files:
+        for img_file in sorted(glob.glob(os.path.join(data_dir, "*.jpeg"))):
             pdf.add_page()
-            pdf.image(img_file, x=10, y=10, w=190)  # Adjust position and size as needed
+            pdf.image(img_file, x=10, y=10, w=190)
 
-            # Corresponding transcription file
             txt_file = os.path.splitext(img_file)[0] + ".txt"
             if os.path.exists(txt_file):
-                pdf.set_font("Arial", size=12)
-                y_position = 150  # Adjust vertical position for text below image
-                with open(txt_file, "r", encoding="utf-8") as f:
-                    for line in f:
-                        pdf.set_xy(10, y_position)
-                        pdf.multi_cell(0, 10, line.strip())  # Adjust cell height as needed
-                        y_position += 10 # Move to the next line position
+                pdf.set_font("Arial", size=12)  # Or another standard font
+                y_position = 150
+                try:
+                    with open(txt_file, "r", encoding="utf-8") as f:
+                        text = f.read()
+                        normalized_text = unicodedata.normalize("NFC", text)
 
-        # Generate summary using summarize_text_gemini
-        summary_output_dir = os.path.join(output_dir, "summary_output") # Generate output dir for summary
-        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir)
-        
-        # Add summary to the PDF
+                        # Encode to Latin-1 with error handling
+                        latin1_text = normalized_text.encode("latin-1", "replace").decode("latin-1")
+
+                        pdf.set_xy(10, y_position)
+                        pdf.multi_cell(0, 10, latin1_text)
+                except Exception as e:  # Catch any error
+                    print(f"Error processing {txt_file}: {e}")
+                    pdf.set_xy(10, y_position)
+                    pdf.multi_cell(0, 10, f"Error processing text: {e}")
+
+
+        summary_output_dir = os.path.join(output_dir, "summary_output")
+        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir)  # Assuming this function exists
+
         if summary_file_path:
-        
             pdf.add_page()
             pdf.set_font("Arial", size=14)
             pdf.cell(0, 10, "Meeting Summary", ln=True, align="C")
 
             pdf.set_font("Arial", size=12)
             y_position = 25
-            with open(summary_file_path, "r", encoding="utf-8") as f:
-                for line in f:
+            try:
+                with open(summary_file_path, "r", encoding="utf-8") as f:
+                    summary_text = f.read()
+                    normalized_summary = unicodedata.normalize("NFC", summary_text)
+                    latin1_summary = normalized_summary.encode("latin-1", "replace").decode("latin-1")
                     pdf.set_xy(10, y_position)
-                    pdf.multi_cell(0, 10, line.strip())
-                    y_position += 10
+                    pdf.multi_cell(0, 10, latin1_summary)
+            except Exception as e:
+                print(f"Error processing summary: {e}")
+                pdf.set_xy(10, y_position)
+                pdf.multi_cell(0, 10, f"Error processing summary: {e}")
+
 
 
         pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
-        pdf.output(pdf_output_path)
+        pdf.output(pdf_output_path, "F")
         print(f"PDF report generated: {pdf_output_path}")
