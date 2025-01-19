@@ -40,7 +40,6 @@ def initialize_transcription(speaker_registry_file="speaker_registry.json",
     os.makedirs(os.environ["TORCH_HOME"], exist_ok=True)
     os.makedirs(os.environ["PYANNOTE_CACHE"], exist_ok=True)
 
-
     global _pipeline, _speaker_recognition, _model, _sample_rate, _similarity_threshold, _margin_of_safety, _speaker_registry_file
     _speaker_registry_file = speaker_registry_file
     _sample_rate = sample_rate
@@ -54,7 +53,6 @@ def initialize_transcription(speaker_registry_file="speaker_registry.json",
         savedir=os.path.join(os.environ["PYANNOTE_CACHE"],
                             "speechbrain_speaker_rec"))
     _model = whisper.load_model("large-v2")
-
 
 # Zarządzanie bazą speakerów
 def load_speaker_registry():
@@ -156,7 +154,7 @@ def convert_audio_to_16k(audio_data, original_sr, target_sr=16000):
     return resampled_audio
 
 # Przetwarzanie pliku audio
-def process_audio_file(file_path, enable_speaker_recognition=1, output_16k_path=None):
+def process_audio_file(file_path, selected_language, output_txt_path, enable_speaker_recognition=1):
     initialize_transcription()
     global _speaker_recognition_enabled
     _speaker_recognition_enabled = bool(enable_speaker_recognition)
@@ -174,21 +172,12 @@ def process_audio_file(file_path, enable_speaker_recognition=1, output_16k_path=
             save_speaker_registry(speaker_registry)
 
     
-        # Generate transcription filename in the same directory as the audio file
-        audio_dir = os.path.dirname(file_path)
-        base_name = os.path.splitext(os.path.basename(file_path))[0]
-        transcription_filename = os.path.join(audio_dir, f"{base_name}.txt")
-    
         if segments:
-            save_transcription(segments, transcription_filename, audio_16k)
-            print(f"Transkrypcja zapisana do: {transcription_filename}")
+            save_transcription(segments, output_txt_path, audio_16k)
+            print(f"Transkrypcja zapisana do: {output_txt_path}")
 
         else:
             print("Nie udało się przeprowadzić diarizacji.")
-
-        if output_16k_path:
-            sf.write(output_16k_path, audio_16k, 16000)  # Save the resampled audio to disk
-            print(f"Audio resampled and saved to: {output_16k_path}")
 
     except Exception as e:
         print(f"Błąd przetwarzania pliku audio: {e}")
