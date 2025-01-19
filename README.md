@@ -28,7 +28,7 @@
 
 
 ## Interfejs
-![image](https://github.com/user-attachments/assets/7807a0ee-0f0a-4107-91bd-402dc4b25c07)
+![image](https://github.com/user-attachments/assets/70df35ba-8973-47bf-bdd5-0ab4766cfb33)
 
 ## Wykorzystane biblioteki python
 
@@ -146,7 +146,7 @@ W2 --> W3
 ```
 ## Szczegółowy opis funkcji aplikacji
 
-![image](https://github.com/user-attachments/assets/7807a0ee-0f0a-4107-91bd-402dc4b25c07)
+![image](https://github.com/user-attachments/assets/b30dd9f5-0419-45c4-8f8b-e0c5a9323885)
 
 ### **1. Funkcja nagrywania**
 
