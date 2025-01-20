@@ -308,94 +308,79 @@ class ScreenRecorderGUI:
         return (100 - percentage) < threshold
 
     def record_screen(self):
-        """Record the screen and save it to a video file."""
+        """Record the screen, save screenshots, and manage audio recording segments."""
         name = "screenshot"
         i = 0
         last_comparison_time = time.time()
         start_time = time.time()
         prev_frame = None
+
+        # Start initial audio recording IMMEDIATELY:
+        file_path_audio_initial = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav")
+        self.audio_output_file_path = file_path_audio_initial
+        self.stop_audio_event.clear()
+        self.audio_thread = threading.Thread(
+            target=start_recording_audio,
+            args=(
+                file_path_audio_initial,
+                self.stop_audio_event,
+                self.selected_language,
+                self.transcription_queue
+            ),
+            daemon=True,
+        )
+        self.audio_thread.start()
+
         while self.is_recording:
             try:
                 jpeg_count = self.count_jpeg_files_glob()
-                print(f"Liczba plików JPEG: {jpeg_count}")
+                print(f"Number of JPEG files: {jpeg_count}")
             except ValueError as e:
                 print(e)
-            if (
-                jpeg_count <= 4 * self.max_video_time
-                and self.max_audio_time >= time.time() - start_time
-            ):
+
+            if (jpeg_count <= 4 * self.max_video_time and self.max_audio_time >= time.time() - start_time):
                 img = pyautogui.screenshot()
                 frame = np.array(img)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                 file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
-                file_path_whiteboard = os.path.join(
-                    os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg"
-                )
+                file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
+
                 current_time = time.time()
+
                 if i == 0:
-                    cv2.imwrite(
-                        file_path_whiteboard,
-                        frame,
-                        [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
-                    )
-                elif current_time - last_comparison_time >= 1:  # every 1 sec check
-                    if prev_frame is not None and self.compare_frames(
-                        prev_frame, frame
-                    ):  # if frame change
-                        cv2.imwrite(
-                            file_path_whiteboard,
-                            frame,
-                            [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
-                        )
-                        file_path_audio = os.path.join(
-                            os.getcwd(),
-                            "whiteboard_data",
-                            f"{name}_whiteboard.{i}.wav",
-                        )
+                    cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+                elif current_time - last_comparison_time >= 1:
+                    if prev_frame is not None and self.compare_frames(prev_frame, frame):
+                        cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+                        file_path_audio = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav")
                         self.audio_output_file_path = file_path_audio
 
-                        # Stop any existing audio recording
-                        self.stop_audio_recording()
-
-                        # Start new audio recording
-                        self.stop_audio_event.clear()  # Reset the event
+                        self.stop_audio_recording() # Stop previous audio segment
+                        self.stop_audio_event.clear()
                         self.audio_thread = threading.Thread(
                             target=start_recording_audio,
                             args=(
                                 file_path_audio,
                                 self.stop_audio_event,
                                 self.selected_language,
-                                self.transcription_queue  # Pass the queue
+                                self.transcription_queue
                             ),
                             daemon=True,
                         )
-                        self.audio_thread.start()
+                        self.audio_thread.start() # Start new audio segment
+                    
                     prev_frame = frame.copy()
-                    cv2.imwrite(
-                        file_path,
-                        frame,
-                        [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
-                    )
+                    cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
                     last_comparison_time = current_time
+
                 i += 1
             elif jpeg_count > 4 * self.max_video_time:
                 print("Max video time reached")
-                file_path_audio = os.path.join(
-                    os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav"
-                )
-                self.audio_output_file_path = file_path_audio
-                self.stop_recording()
-                self.is_recording = False
+                self.stop_recording() # Stop recording if video limit reached
             else:
                 print("Max audio time reached")
-                print(time.time() - start_time)
-                file_path_audio = os.path.join(
-                    os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav"
-                )
-                self.audio_output_file_path = file_path_audio
-                self.stop_recording()
-                self.is_recording = False
+                self.stop_recording() # Stop recording if audio limit reached
 
     def stop_audio_recording(self):
         """Stops the currently running audio recording thread."""
@@ -457,13 +442,6 @@ class ScreenRecorderGUI:
                 print(f"Error processing summary: {e}")
                 pdf.set_xy(10, y_position)
                 pdf.multi_cell(0, 10, f"Error processing summary: {e}")
-
-        pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
-        pdf.output(pdf_output_path, "F")
-        print(f"PDF report generated: {pdf_output_path}")
-
-
-
 
         pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
         pdf.output(pdf_output_path, "F")
