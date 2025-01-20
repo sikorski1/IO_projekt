@@ -30,14 +30,15 @@ def merge_text_files_by_date(folder_path):
         print(f"An error occurred: {e}")
 
 
-def summarize_text_gemini(folder_path, output_dir):
+def summarize_text_gemini(folder_path, output_dir, language="en-US"):
     """
     Summarizes a text file using the Gemini API and saves the summary to a text file.
-
+    
     Args:
         folder_path (str): The path to the folder containing the text files.
         output_dir (str): The directory where the summary will be saved.
-        
+        language (str): The language for the summary (e.g., "en-US", "pl").
+    
     Returns:
         str: The file path where the summary was saved, or None on error.
     """
@@ -66,7 +67,13 @@ def summarize_text_gemini(folder_path, output_dir):
     model = genai.GenerativeModel('gemini-pro')
 
     try:
-        prompt = f"Summarize this text: {text}"
+        if language == "pl":
+            prompt_prefix = "Napisz streszczenie w języku polskim: "
+        else: # Default to English if not Polish
+            prompt_prefix = "Give me a summary in English: "
+        
+        prompt = f"{prompt_prefix} {text}"
+
         response = model.generate_content(prompt)
         if response.text:
             # Save the summary to a file in output directory

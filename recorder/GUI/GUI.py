@@ -420,7 +420,7 @@ class ScreenRecorderGUI:
 
 
         summary_output_dir = os.path.join(output_dir, "summary_output")
-        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir)
+        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir, self.selected_language)
 
         if summary_file_path:
             pdf.add_page()
