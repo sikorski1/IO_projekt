@@ -150,51 +150,76 @@ W2 --> W3
 
 ### **1. Funkcja nagrywania**
 
-#### **Start Recording**
-- **Przycisk "Start Recording":**
+#### **Rozpocznij Nagrywanie**
+- **Przycisk: "Start Recording"**
   - Rozpoczyna proces nagrywania ekranu i dźwięku.
-  - Tworzy osobne wątki:
-    - **Wątek audio:**
-      - Używa funkcji `start_recording_audio` do rejestrowania dźwięku.
-    - **Wątek ekranu:**
-      - Wykonuje zrzuty ekranu w określonych odstępach czasu.
-      - Wykorzystuje PyAutoGUI do robienia zrzutów i OpenCV do ich przetwarzania.
-      - Obrazy są zapisywane w folderze `data`.
-      - Obrazy znacząco różniące się od domyślnego obrazu aplikacji są zapisywane w folderze `whiteboard_data`.
+  - Tworzy oddzielne wątki:
+    - **Wątek Audio:**
+      - Używa funkcji `start_recording_audio`, która rejestruje dźwięk w krótkich fragmentach.
+      - Każdy fragment dźwięku jest synchronizowany z odpowiadającym mu zrzutem ekranu.
+    - **Wątek Ekranu:**
+      - Wykonuje zrzuty ekranu w regularnych odstępach czasu.
+      - Każdy zrzut jest porównywany z poprzednim pod kątem zmian:
+        - Zmiany są analizowane na podstawie różnic w pikselach.
+        - Jeśli różnica przekracza określony próg (np. **15%**), zrzut ekranu jest uznawany za znaczący i zapisywany w folderze `whiteboard_data`.
+      - Wszystkie zrzuty ekranu są zapisywane w folderze `data`, a istotne zmiany w folderze `whiteboard_data`.
 
-#### **Mechanizm sprawdzania podobieństwa obrazów:**
-- Porównuje zrzuty ekranu z domyślnym obrazem platformy (np. Teams, Zoom, Meet).
-- Jeśli różnica przekracza **15%**, obraz zostaje zapisany jako istotny dla sesji nagrywania.
+#### **Mechanizm Porównywania Obrazów**
+- **Algorytm porównywania:**
+  - Obrazy są porównywane pod kątem różnic w pikselach.
+  - Jeśli różnice między dwoma kolejnymi zrzutami są znaczące, nowy zrzut jest zapisywany jako istotny.
+- **Synchronizacja Audio i Obrazu:**
+  - Każdy istotny zrzut ekranu powoduje zatrzymanie obecnego nagrywania audio i rozpoczęcie nowego nagrania audio przypisanego do danego zrzutu.
 
-#### **Ograniczenia nagrywania:**
-- **Wideo:** Nagrywanie kończy się, gdy liczba zrzutów ekranu przekroczy limit dostępnego miejsca.
-- **Audio:** Nagrywanie kończy się, gdy czas nagrywania przekroczy ustawiony limit.
+#### **Ograniczenia Nagrywania**
+- **Długość Nagrywania:**
+  - Nagrywanie kończy się automatycznie, jeśli:
+    - Liczba zapisanych zrzutów przekroczy maksymalną liczbę określoną przez dostępną przestrzeń dyskową.
+    - Całkowity czas nagrania audio przekroczy limit czasu obliczony na podstawie ustawień aplikacji.
+- **Jakość Zrzutów:**
+  - Użytkownik może dostosować jakość zapisywanych obrazów (np. `100%`, `90%`) w ustawieniach aplikacji.
 
-#### **Stop Recording**
-- **Przycisk "Stop Recording":**
-  - Zatrzymuje nagrywanie ekranu i dźwięku.
-  - **Przetwarzanie plików:**
-    - Obrazy z folderu `whiteboard_data` są łączone w wideo przy użyciu FFmpeg.
-    - Nagranie audio jest scalane z wideo, tworząc pełny materiał.
+#### **Zakończ Nagrywanie**
+- **Przycisk: "Stop Recording"**
+  - Zatrzymuje aktywne wątki nagrywania ekranu i dźwięku.
+  - **Post-Processing:**
+    - Wszystkie zrzuty ekranu z folderu `whiteboard_data` są łączone w film za pomocą FFmpeg.
+    - Nagrania audio są synchronizowane z odpowiednimi fragmentami wideo.
+    - Generowany jest pełny materiał wideo wraz z dźwiękiem.
 
----
+#### **Przetwarzanie Raportu**
+- Po zakończeniu nagrywania aplikacja generuje raport PDF:
+  - Raport zawiera wszystkie istotne zrzuty ekranu.
+  - Każdemu obrazowi towarzyszy transkrypcja nagrania audio przypisanego do danego zrzutu.
+- Raport jest zapisywany w katalogu `meetings` z datą i godziną rozpoczęcia nagrania.
+
+#### **Automatyczne Czyszczenie Danych**
+- Przed rozpoczęciem nowego nagrywania wszystkie pliki w folderach `data` i `whiteboard_data` są usuwane, aby uniknąć nadpisywania starych danych.
 
 ### **2. Transkrypcja**
 
-#### **File Transcription**
-- **Wybór pliku audio:**
-  - Umożliwia wybór pliku `.wav` z lokalnego systemu.
-  - Ścieżka do wybranego pliku jest wyświetlana w interfejsie aplikacji.
+#### **Transkrypcja Pliku Audio**
+- **Wybór Pliku Audio:**
+  - Umożliwia użytkownikowi wybór pliku `.wav` z systemu lokalnego.
+  - Ścieżka wybranego pliku jest wyświetlana w interfejsie aplikacji.
+- **Wybór Języka:**
+  - Użytkownik może wybrać język rozpoznawania mowy, np. `pl` (polski) lub `en-US` (angielski).
+  - Wybrany język jest widoczny w aplikacji i używany w procesie transkrypcji.
+- **Przetwarzanie Transkrypcji:**
+  - Transkrypcja plików audio odbywa się w osobnym wątku.
+  - Wykorzystuje kolejkę zadań (`transcription_queue`) do przetwarzania zgłoszonych plików.
+  - Transkrypcje są generowane w formie plików tekstowych `.txt` i zapisywane w katalogu docelowym.
 
-- **Wybór języka:**
-  - Użytkownik może wybrać język do rozpoznawania mowy (np. `pl` dla polskiego, `en-US` dla angielskiego).
-  - Wybrany język jest zapisywany i widoczny w aplikacji.
+#### **Transkrypcja Podczas Nagrywania**
+- Zrzuty ekranu oznaczone jako znaczące (przechowywane w folderze `whiteboard_data`) są łączone z krótkimi nagraniami audio.
+- Transkrypcja jest przeprowadzana na bieżąco:
+  - Każdy fragment audio przypisany do danego zrzutu ekranu jest przetwarzany.
+  - Wyniki transkrypcji są przechowywane w plikach `.txt`, z których każdy odpowiada jednemu zrzutowi ekranu.
 
-- **Przycisk "Transcript File":**
-  - Rozpoczyna transkrypcję pliku audio w osobnym wątku.
-  - Wykorzystuje technologię rozpoznawania mowy do przetwarzania plików `.wav`.
-
----
+#### **Wynik Transkrypcji**
+- Wszystkie transkrypcje są automatycznie uwzględniane w generowanym raporcie PDF:
+  - Tekst z plików transkrypcji pojawia się poniżej odpowiadających im zrzutów ekranu.
+  - Raport PDF jest zapisywany w katalogu docelowym z nazwą odpowiadającą czasowi rozpoczęcia nagrywania.
 
 ### **3. Zaawansowane opcje**
 
