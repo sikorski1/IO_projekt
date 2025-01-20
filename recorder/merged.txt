@@ -1,5 +1,0 @@
-PIOTREK [0.30s - 1.92s]: Na stronie mamy informacje.
-
-PIOTREK [0.03s - 8.70s]: A propos tych wymagań z tym SNR-em, tak, tu potwierdzam, w sumie binfo-rynk jest coraz ważniejszy, tak, żeby uzyskać tak wysoki SNR.
-PIOTREK [9.30s - 12.64s]: żeby uzyskać modulację 4096 potrzebujemy
-

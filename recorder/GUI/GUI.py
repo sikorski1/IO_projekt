@@ -18,7 +18,7 @@ from GUI.setNames import SetNames
 from fpdf import FPDF
 from GUI.summary import summarize_text_gemini
 from fpdf import FPDF, HTMLMixin
-import unicodedata
+import unidecode
 
 class MyFPDF(FPDF, HTMLMixin):
     pass
@@ -408,6 +408,8 @@ class ScreenRecorderGUI:
         pdf = MyFPDF()
         pdf.set_title(f"Meeting Report {meeting_start_time}")
         pdf.set_author("Your App Name")
+        pdf.set_font("helvetica", size=12) # Use a standard font
+
 
         for img_file in sorted(glob.glob(os.path.join(data_dir, "*.jpeg"))):
             pdf.add_page()
@@ -415,45 +417,51 @@ class ScreenRecorderGUI:
 
             txt_file = os.path.splitext(img_file)[0] + ".txt"
             if os.path.exists(txt_file):
-                pdf.set_font("Arial", size=12)  # Or another standard font
                 y_position = 150
                 try:
                     with open(txt_file, "r", encoding="utf-8") as f:
                         text = f.read()
-                        normalized_text = unicodedata.normalize("NFC", text)
 
-                        # Encode to Latin-1 with error handling
-                        latin1_text = normalized_text.encode("latin-1", "replace").decode("latin-1")
+                        # Remove diacritics:
+                        ascii_text = unidecode.unidecode(text)
 
                         pdf.set_xy(10, y_position)
-                        pdf.multi_cell(0, 10, latin1_text)
-                except Exception as e:  # Catch any error
-                    print(f"Error processing {txt_file}: {e}")
+                        pdf.multi_cell(0, 10, ascii_text)
+
+                except Exception as e:
+                    print(f"Error: {e}")
                     pdf.set_xy(10, y_position)
                     pdf.multi_cell(0, 10, f"Error processing text: {e}")
 
 
         summary_output_dir = os.path.join(output_dir, "summary_output")
-        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir)  # Assuming this function exists
+        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir)
 
         if summary_file_path:
             pdf.add_page()
-            pdf.set_font("Arial", size=14)
+            pdf.set_font("helvetica", size=14)  # Or another standard font
             pdf.cell(0, 10, "Meeting Summary", ln=True, align="C")
+            pdf.set_font("helvetica", size=12)  # Or another standard font
 
-            pdf.set_font("Arial", size=12)
             y_position = 25
             try:
                 with open(summary_file_path, "r", encoding="utf-8") as f:
                     summary_text = f.read()
-                    normalized_summary = unicodedata.normalize("NFC", summary_text)
-                    latin1_summary = normalized_summary.encode("latin-1", "replace").decode("latin-1")
+
+                     # Remove diacritics:
+                    ascii_summary = unidecode.unidecode(summary_text)
+
                     pdf.set_xy(10, y_position)
-                    pdf.multi_cell(0, 10, latin1_summary)
+                    pdf.multi_cell(0, 10, ascii_summary) 
             except Exception as e:
                 print(f"Error processing summary: {e}")
                 pdf.set_xy(10, y_position)
                 pdf.multi_cell(0, 10, f"Error processing summary: {e}")
+
+        pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
+        pdf.output(pdf_output_path, "F")
+        print(f"PDF report generated: {pdf_output_path}")
+
 
 
 
