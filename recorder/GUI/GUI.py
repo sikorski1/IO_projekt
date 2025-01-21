@@ -31,11 +31,6 @@ class ScreenRecorderGUI:
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
-        self.storage_size = 0  # self.max_files_size converted to bytes
-        self.audio_bps = 0
-        self.video_bps = 0
-        self.max_audio_time = 0
-        self.max_video_time = 0
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"
 
         # Set up the GUI window
@@ -169,47 +164,8 @@ class ScreenRecorderGUI:
             text=f"Selected Language: {self.selected_language}",
         )
 
-    def calculate_self_storage_size(self):
-        # Storage size converted to bytes:
-        if self.Settings.max_files_size == "0.1GB":
-            self.storage_size = 0.1 * 1024 * 1024 * 1024
-        elif self.Settings.max_files_size == "10GB":
-            self.storage_size = 10 * 1024 * 1024 * 1024
-        elif self.Settings.max_files_size == "5GB":
-            self.storage_size = 5 * 1024 * 1024 * 1024
-        else:
-            self.storage_size = 3 * 1024 * 1024 * 1024
-
-    def audio_storage_calculations(self):
-        """
-        Calculates the maximum recording time for a given maximum file size
-        """
-        self.calculate_self_storage_size()
-        self.audio_bps = 48000 * 2 * 2  # 48000 samplerate, 2 channels, 2 bytes per sample
-        self.max_audio_time = self.storage_size // self.audio_bps
-        print(f"Max audio time: {self.max_audio_time} seconds")
-
-    # Function to calculate the storage size of video
-    def video_storage_calculations(self):
-        # Sample screenshot to calculate number of screenshots
-        name = "sample"
-        sample_img = pyautogui.screenshot()
-        frame = np.array(sample_img)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        file_path = os.path.join(os.getcwd(), "data", f"{name}.jpeg")
-        # Save the sample image
-        cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
-        # Calculate bytes of 1 sec video withut audio
-        self.video_bps = 4 * os.path.getsize(
-            file_path
-        )  # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
-        # Calculate bytes per second
-        self.max_video_time = self.storage_size // (self.video_bps)
-
     def start_recording(self):
         """Start the screen and audio recording process."""
-        self.audio_storage_calculations()
-        self.video_storage_calculations()
         data_dir = os.path.join(os.getcwd(), "data")
         whiteboard_dir = os.path.join(os.getcwd(), "whiteboard_data")
 
@@ -337,50 +293,41 @@ class ScreenRecorderGUI:
                 print(f"Number of JPEG files: {jpeg_count}")
             except ValueError as e:
                 print(e)
+            img = pyautogui.screenshot()
+            frame = np.array(img)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            if (jpeg_count <= 4 * self.max_video_time and self.max_audio_time >= time.time() - start_time):
-                img = pyautogui.screenshot()
-                frame = np.array(img)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
+            file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
 
-                file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
-                file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
+            current_time = time.time()
 
-                current_time = time.time()
-
-                if i == 0:
+            if i == 0:
+                cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+            elif current_time - last_comparison_time >= 1:
+                if prev_frame is not None and self.compare_frames(prev_frame, frame):
                     cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
-                elif current_time - last_comparison_time >= 1:
-                    if prev_frame is not None and self.compare_frames(prev_frame, frame):
-                        cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
-                        file_path_audio = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav")
-                        self.audio_output_file_path = file_path_audio
+                    file_path_audio = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav")
+                    self.audio_output_file_path = file_path_audio
 
-                        self.stop_audio_recording() # Stop previous audio segment
-                        self.stop_audio_event.clear()
-                        self.audio_thread = threading.Thread(
-                            target=start_recording_audio,
-                            args=(
-                                file_path_audio,
-                                self.stop_audio_event,
-                                self.selected_language,
-                                self.transcription_queue
-                            ),
-                            daemon=True,
-                        )
-                        self.audio_thread.start() # Start new audio segment
-                    
-                    prev_frame = frame.copy()
-                    cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
-                    last_comparison_time = current_time
-
-                i += 1
-            elif jpeg_count > 4 * self.max_video_time:
-                print("Max video time reached")
-                self.stop_recording() # Stop recording if video limit reached
-            else:
-                print("Max audio time reached")
-                self.stop_recording() # Stop recording if audio limit reached
+                    self.stop_audio_recording() # Stop previous audio segment
+                    self.stop_audio_event.clear()
+                    self.audio_thread = threading.Thread(
+                        target=start_recording_audio,
+                        args=(
+                            file_path_audio,
+                            self.stop_audio_event,
+                            self.selected_language,
+                            self.transcription_queue
+                        ),
+                        daemon=True,
+                    )
+                    self.audio_thread.start() # Start new audio segment
+                
+                prev_frame = frame.copy()
+                cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+                last_comparison_time = current_time
+            i += 1
 
     def stop_audio_recording(self):
         """Stops the currently running audio recording thread."""
