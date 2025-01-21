@@ -199,7 +199,7 @@ W2 --> W3
   - Umożliwia użytkownikowi wybór pliku `.wav` z systemu lokalnego.
   - Ścieżka wybranego pliku jest wyświetlana w interfejsie aplikacji.
 - **Wybór Języka:**
-  - Użytkownik może wybrać język rozpoznawania mowy, np. `pl` (polski) lub `en-US` (angielski).
+  - Użytkownik może wybrać język streszczania tekstu, np. `pl` (polski) lub `en-US` (angielski).
   - Wybrany język jest widoczny w aplikacji i używany w procesie transkrypcji.
 - **Przetwarzanie Transkrypcji:**
   - Transkrypcja plików audio odbywa się w osobnym wątku.
