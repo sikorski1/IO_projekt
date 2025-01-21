@@ -22,7 +22,7 @@
 | **Jak aplikacja zapisuje wygenerowany PDF?** | Plik PDF jest zapisywany w tym samym katalogu co plik TXT, z tą samą nazwą i rozszerzeniem `.pdf`.      | Jeśli plik PDF już istnieje, zostanie nadpisany.                                                     |
 | **Czy aplikacja obsługuje różne formaty audio?** | Nie, aplikacja obsługuje tylko format WAV dla nagrywania i zapisu.                                     | Możesz rozszerzyć aplikację, dodając konwersję do innych formatów, np. MP3 przy użyciu `pydub`.       |
 | **Jak działa GUI aplikacji?**              | GUI jest zbudowane za pomocą `tkinter` i rozszerzenia `ttkbootstrap`.                                  | Wszystkie operacje odbywają się w oknach głównych lub pomocniczych (`Toplevel`).                      |
-| **Czy aplikacja pozwala na edycję ustawień?** | Tak, ustawienia są obsługiwane w module `Settings` (np. jakość obrazu, platforma do nagrywania).       | Szczegóły ustawień są przechowywane w obiekcie klasy `Settings`.                                      |
+| **Czy aplikacja pozwala na edycję ustawień?** | Tak, ustawienia są obsługiwane w module `Settings` (np. jakość obrazu).       | Szczegóły ustawień są przechowywane w obiekcie klasy `Settings`.                                      |
 | **Czy aplikacja obsługuje wielozadaniowość?** | Tak, funkcje takie jak nagrywanie i transkrypcja działają w oddzielnych wątkach.                       | Wątki są obsługiwane za pomocą modułu `threading`.                                                    |
 | **Czy aplikacja umożliwia transkrypcję audio?** | Tak, kod sugeruje możliwość transkrypcji audio w module `transcription`.                               | Funkcjonalność transkrypcji zależy od implementacji modułu `process_audio_file`.                      |
 
@@ -172,10 +172,6 @@ W2 --> W3
   - Każdy istotny zrzut ekranu powoduje zatrzymanie obecnego nagrywania audio i rozpoczęcie nowego nagrania audio przypisanego do danego zrzutu.
 
 #### **Ograniczenia Nagrywania**
-- **Długość Nagrywania:**
-  - Nagrywanie kończy się automatycznie, jeśli:
-    - Liczba zapisanych zrzutów przekroczy maksymalną liczbę określoną przez dostępną przestrzeń dyskową.
-    - Całkowity czas nagrania audio przekroczy limit czasu obliczony na podstawie ustawień aplikacji.
 - **Jakość Zrzutów:**
   - Użytkownik może dostosować jakość zapisywanych obrazów (np. `100%`, `90%`) w ustawieniach aplikacji.
 
@@ -229,8 +225,6 @@ W2 --> W3
 
 #### **Settings**
 - Otwiera okno ustawień, gdzie użytkownik może dostosować:
-  - **Platformę:** Teams, Zoom, Meet.
-  - **Maksymalny rozmiar plików:** np. 0.1GB, 10GB, 5GB.
   - **Jakość nagrywania:** Procentowa jakość (100%, 90%, itd.).
   - **Rozpoznawanie mówców:** Opcja włączania/wyłączania.
 
@@ -281,10 +275,8 @@ W2 --> W3
 ### **6. Limity przechowywania**
 
 - **Obliczenia czasu nagrywania:**
-  - Na podstawie dostępnego miejsca na dysku obliczany jest maksymalny czas nagrywania.
   - Uwzględniane parametry:
     - **Jakość wideo:** Wpływa na rozmiar zrzutów ekranu.
-    - **Rozmiar plików:** Ustawienia użytkownika (np. 0.1GB, 10GB).
 
 ## Sugerowane języki implementacji
 Python
