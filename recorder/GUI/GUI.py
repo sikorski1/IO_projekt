@@ -37,8 +37,20 @@ class ScreenRecorderGUI:
         self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
         self.root.geometry("450x550")
+        settings_frame = tk.Frame(self.root)
+        settings_frame.pack(fill=tk.X, padx=10, pady=10)
+
         # Settings
-        self.Settings = Settings(self.root, "teams", 100, True)
+        set_names_button = ttk.Button(
+            settings_frame,
+            text="Set Names",
+            bootstyle="info-outline",
+            command=lambda: self.set_names.open_set_name_window(self.calculate_window_pos),
+        )
+        set_names_button.pack(side=tk.RIGHT, padx=5)
+        self.Settings = Settings(self.root, 100, True)
+        self.set_names = SetNames(self.root)
+
         # More
         self.More = More(self.root)
         # SetNames

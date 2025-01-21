@@ -39,7 +39,7 @@ class SetNames:
         entries = []
         
         if original_names:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json", "r") as file:
+            with open(os.getcwd() + r"/speaker_registry.json", "r") as file:
                 data = json.load(file)
 
         for name in original_names:
@@ -62,7 +62,7 @@ class SetNames:
         save_button.pack(side=tk.RIGHT)
     def load_speakers(self):
         try:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json") as file:
+            with open(os.getcwd() + r"/speaker_registry.json") as file:
                 data = json.load(file)
                 return list(data.keys())
         except(FileNotFoundError, json.JSONDecodeError):
@@ -71,7 +71,7 @@ class SetNames:
         new_names = [entry.get() for entry in entries]
         updated_data = {new_name: data[speaker] for new_name, speaker in zip(new_names, original_names)}
         try:
-            with open(os.getcwd() + r"/recorder/speaker_registry.json", "w") as file:
+            with open(os.getcwd() + r"/speaker_registry.json", "w") as file:
                 json.dump(updated_data, file, indent=4)
         except(FileNotFoundError, json.JSONDecodeError):
            messagebox.showinfo(FileNotFoundError, json.JSONDecodeError)
