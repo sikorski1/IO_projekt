@@ -1,7 +1,7 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 class Settings:
-    def __init__(self, root, platform, max_files_size, quality, recognition):
+    def __init__(self, root, platform, quality, recognition):
         self.root_window = root
         self.platform = platform
         self.quality = quality

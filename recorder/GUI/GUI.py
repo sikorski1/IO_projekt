@@ -38,7 +38,7 @@ class ScreenRecorderGUI:
         self.root.title("Screen Recorder")
         self.root.geometry("450x550")
         # Settings
-        self.Settings = Settings(self.root, "teams", "0.1GB", 100, True)
+        self.Settings = Settings(self.root, "teams", 100, True)
         # More
         self.More = More(self.root)
         # SetNames
