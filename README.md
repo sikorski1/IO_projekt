@@ -200,7 +200,7 @@ W2 --> W3
   - Ścieżka wybranego pliku jest wyświetlana w interfejsie aplikacji.
 - **Wybór Języka:**
   - Użytkownik może wybrać język streszczania tekstu, np. `pl` (polski) lub `en-US` (angielski).
-  - Wybrany język jest widoczny w aplikacji i używany w procesie transkrypcji.
+  - Wybrany język jest widoczny w aplikacji i używany w procesie streszczania.
 - **Przetwarzanie Transkrypcji:**
   - Transkrypcja plików audio odbywa się w osobnym wątku.
   - Wykorzystuje kolejkę zadań (`transcription_queue`) do przetwarzania zgłoszonych plików.
