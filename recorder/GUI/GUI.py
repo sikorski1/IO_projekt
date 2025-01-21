@@ -16,6 +16,12 @@ from GUI.settings import Settings
 from GUI.more import More
 from GUI.setNames import SetNames
 from fpdf import FPDF
+from GUI.summary import summarize_text_gemini
+from fpdf import FPDF, HTMLMixin
+import unidecode
+
+class MyFPDF(FPDF, HTMLMixin):
+    pass
 
 class ScreenRecorderGUI:
     def __init__(self):
@@ -25,19 +31,26 @@ class ScreenRecorderGUI:
         self.filename = "Recording.avi"
         self.resolution = (1920, 1080)
         self.codec = cv2.VideoWriter_fourcc(*"XVID")
-        self.storage_size = 0  # self.max_files_size converted to bytes
-        self.audio_bps = 0
-        self.video_bps = 0
-        self.max_audio_time = 0
-        self.max_video_time = 0
         self.defaultImg = os.getcwd() + r"/GUI/teams.png"
 
         # Set up the GUI window
         self.root = ttk.Window(themename="vapor")
         self.root.title("Screen Recorder")
         self.root.geometry("450x550")
+        settings_frame = tk.Frame(self.root)
+        settings_frame.pack(fill=tk.X, padx=10, pady=10)
+
         # Settings
-        self.Settings = Settings(self.root, "teams", "0.1GB", 100, True)
+        set_names_button = ttk.Button(
+            settings_frame,
+            text="Set Names",
+            bootstyle="info-outline",
+            command=lambda: self.set_names.open_set_name_window(self.calculate_window_pos),
+        )
+        set_names_button.pack(side=tk.RIGHT, padx=5)
+        self.Settings = Settings(self.root, 100, True)
+        self.set_names = SetNames(self.root)
+
         # More
         self.More = More(self.root)
         # SetNames
@@ -163,47 +176,8 @@ class ScreenRecorderGUI:
             text=f"Selected Language: {self.selected_language}",
         )
 
-    def calculate_self_storage_size(self):
-        # Storage size converted to bytes:
-        if self.Settings.max_files_size == "0.1GB":
-            self.storage_size = 0.1 * 1024 * 1024 * 1024
-        elif self.Settings.max_files_size == "10GB":
-            self.storage_size = 10 * 1024 * 1024 * 1024
-        elif self.Settings.max_files_size == "5GB":
-            self.storage_size = 5 * 1024 * 1024 * 1024
-        else:
-            self.storage_size = 3 * 1024 * 1024 * 1024
-
-    def audio_storage_calculations(self):
-        """
-        Calculates the maximum recording time for a given maximum file size
-        """
-        self.calculate_self_storage_size()
-        self.audio_bps = 48000 * 2 * 2  # 48000 samplerate, 2 channels, 2 bytes per sample
-        self.max_audio_time = self.storage_size // self.audio_bps
-        print(f"Max audio time: {self.max_audio_time} seconds")
-
-    # Function to calculate the storage size of video
-    def video_storage_calculations(self):
-        # Sample screenshot to calculate number of screenshots
-        name = "sample"
-        sample_img = pyautogui.screenshot()
-        frame = np.array(sample_img)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        file_path = os.path.join(os.getcwd(), "data", f"{name}.jpeg")
-        # Save the sample image
-        cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
-        # Calculate bytes of 1 sec video withut audio
-        self.video_bps = 4 * os.path.getsize(
-            file_path
-        )  # 4, bo Patryczek tak w komendzie wpisał, ale w funkcji record_screen tego nie zawarł, więc troche lipa imo
-        # Calculate bytes per second
-        self.max_video_time = self.storage_size // (self.video_bps)
-
     def start_recording(self):
         """Start the screen and audio recording process."""
-        self.audio_storage_calculations()
-        self.video_storage_calculations()
         data_dir = os.path.join(os.getcwd(), "data")
         whiteboard_dir = os.path.join(os.getcwd(), "whiteboard_data")
 
@@ -302,94 +276,70 @@ class ScreenRecorderGUI:
         return (100 - percentage) < threshold
 
     def record_screen(self):
-        """Record the screen and save it to a video file."""
+        """Record the screen, save screenshots, and manage audio recording segments."""
         name = "screenshot"
         i = 0
         last_comparison_time = time.time()
         start_time = time.time()
         prev_frame = None
+
+        # Start initial audio recording IMMEDIATELY:
+        file_path_audio_initial = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav")
+        self.audio_output_file_path = file_path_audio_initial
+        self.stop_audio_event.clear()
+        self.audio_thread = threading.Thread(
+            target=start_recording_audio,
+            args=(
+                file_path_audio_initial,
+                self.stop_audio_event,
+                self.selected_language,
+                self.transcription_queue
+            ),
+            daemon=True,
+        )
+        self.audio_thread.start()
+
         while self.is_recording:
             try:
                 jpeg_count = self.count_jpeg_files_glob()
-                print(f"Liczba plików JPEG: {jpeg_count}")
+                print(f"Number of JPEG files: {jpeg_count}")
             except ValueError as e:
                 print(e)
-            if (
-                jpeg_count <= 4 * self.max_video_time
-                and self.max_audio_time >= time.time() - start_time
-            ):
-                img = pyautogui.screenshot()
-                frame = np.array(img)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = pyautogui.screenshot()
+            frame = np.array(img)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
-                file_path_whiteboard = os.path.join(
-                    os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg"
-                )
-                current_time = time.time()
-                if i == 0:
-                    cv2.imwrite(
-                        file_path_whiteboard,
-                        frame,
-                        [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
+            file_path = os.path.join(os.getcwd(), "data", f"{name}.{i}.jpeg")
+            file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg")
+
+            current_time = time.time()
+
+            if i == 0:
+                cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+            elif current_time - last_comparison_time >= 1:
+                if prev_frame is not None and self.compare_frames(prev_frame, frame):
+                    cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+                    file_path_audio = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav")
+                    self.audio_output_file_path = file_path_audio
+
+                    self.stop_audio_recording() # Stop previous audio segment
+                    self.stop_audio_event.clear()
+                    self.audio_thread = threading.Thread(
+                        target=start_recording_audio,
+                        args=(
+                            file_path_audio,
+                            self.stop_audio_event,
+                            self.selected_language,
+                            self.transcription_queue
+                        ),
+                        daemon=True,
                     )
-                elif current_time - last_comparison_time >= 1:  # every 1 sec check
-                    if prev_frame is not None and self.compare_frames(
-                        prev_frame, frame
-                    ):  # if frame change
-                        cv2.imwrite(
-                            file_path_whiteboard,
-                            frame,
-                            [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
-                        )
-                        file_path_audio = os.path.join(
-                            os.getcwd(),
-                            "whiteboard_data",
-                            f"{name}_whiteboard.{i}.wav",
-                        )
-                        self.audio_output_file_path = file_path_audio
-
-                        # Stop any existing audio recording
-                        self.stop_audio_recording()
-
-                        # Start new audio recording
-                        self.stop_audio_event.clear()  # Reset the event
-                        self.audio_thread = threading.Thread(
-                            target=start_recording_audio,
-                            args=(
-                                file_path_audio,
-                                self.stop_audio_event,
-                                self.selected_language,
-                                self.transcription_queue  # Pass the queue
-                            ),
-                            daemon=True,
-                        )
-                        self.audio_thread.start()
-                    prev_frame = frame.copy()
-                    cv2.imwrite(
-                        file_path,
-                        frame,
-                        [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)],
-                    )
-                    last_comparison_time = current_time
-                i += 1
-            elif jpeg_count > 4 * self.max_video_time:
-                print("Max video time reached")
-                file_path_audio = os.path.join(
-                    os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav"
-                )
-                self.audio_output_file_path = file_path_audio
-                self.stop_recording()
-                self.is_recording = False
-            else:
-                print("Max audio time reached")
-                print(time.time() - start_time)
-                file_path_audio = os.path.join(
-                    os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav"
-                )
-                self.audio_output_file_path = file_path_audio
-                self.stop_recording()
-                self.is_recording = False
+                    self.audio_thread.start() # Start new audio segment
+                
+                prev_frame = frame.copy()
+                cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])
+                last_comparison_time = current_time
+            i += 1
 
     def stop_audio_recording(self):
         """Stops the currently running audio recording thread."""
@@ -399,26 +349,59 @@ class ScreenRecorderGUI:
             self.audio_thread = None
     
     def generate_pdf_report(self, data_dir, output_dir, meeting_start_time):
-        """Generates a PDF report with images and transcriptions."""
-        pdf = FPDF()
+        pdf = MyFPDF()
         pdf.set_title(f"Meeting Report {meeting_start_time}")
+        pdf.set_author("Your App Name")
+        pdf.set_font("helvetica", size=12) # Use a standard font
 
-        image_files = sorted(glob.glob(os.path.join(data_dir, "*.jpeg")))
-        for img_file in image_files:
+
+        for img_file in sorted(glob.glob(os.path.join(data_dir, "*.jpeg"))):
             pdf.add_page()
-            pdf.image(img_file, x=10, y=10, w=190)  # Adjust position and size as needed
+            pdf.image(img_file, x=10, y=10, w=190)
 
-            # Corresponding transcription file
             txt_file = os.path.splitext(img_file)[0] + ".txt"
             if os.path.exists(txt_file):
-                pdf.set_font("Arial", size=12)
-                y_position = 150  # Adjust vertical position for text below image
-                with open(txt_file, "r", encoding="utf-8") as f:
-                    for line in f:
+                y_position = 150
+                try:
+                    with open(txt_file, "r", encoding="utf-8") as f:
+                        text = f.read()
+
+                        # Remove diacritics:
+                        ascii_text = unidecode.unidecode(text)
+
                         pdf.set_xy(10, y_position)
-                        pdf.multi_cell(0, 10, line.strip())  # Adjust cell height as needed
-                        y_position += 10 # Move to the next line position
+                        pdf.multi_cell(0, 10, ascii_text)
+
+                except Exception as e:
+                    print(f"Error: {e}")
+                    pdf.set_xy(10, y_position)
+                    pdf.multi_cell(0, 10, f"Error processing text: {e}")
+
+
+        summary_output_dir = os.path.join(output_dir, "summary_output")
+        summary_file_path = summarize_text_gemini(data_dir, summary_output_dir, self.selected_language)
+
+        if summary_file_path:
+            pdf.add_page()
+            pdf.set_font("helvetica", size=14)  # Or another standard font
+            pdf.cell(0, 10, "Meeting Summary", ln=True, align="C")
+            pdf.set_font("helvetica", size=12)  # Or another standard font
+
+            y_position = 25
+            try:
+                with open(summary_file_path, "r", encoding="utf-8") as f:
+                    summary_text = f.read()
+
+                     # Remove diacritics:
+                    ascii_summary = unidecode.unidecode(summary_text)
+
+                    pdf.set_xy(10, y_position)
+                    pdf.multi_cell(0, 10, ascii_summary) 
+            except Exception as e:
+                print(f"Error processing summary: {e}")
+                pdf.set_xy(10, y_position)
+                pdf.multi_cell(0, 10, f"Error processing summary: {e}")
 
         pdf_output_path = os.path.join(output_dir, f"{meeting_start_time}_report.pdf")
-        pdf.output(pdf_output_path)
+        pdf.output(pdf_output_path, "F")
         print(f"PDF report generated: {pdf_output_path}")
