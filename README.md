@@ -29,7 +29,7 @@
 
 ## Interfejs
 
-`<zaktualizowane zdjęcie>`
+![main_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/main_gui.png)
 
 ## Wykorzystane biblioteki python
 
@@ -141,7 +141,9 @@ UI4 --> WR3
 
 ## Szczegółowy opis funkcji aplikacji
 
-<3 zdjęcia nowe>
+![more_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/more_gui.png)
+![set_name_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/set_name_gui.png)
+![settings_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/settings_gui.png)
 
 ### **1. Funkcja nagrywania**
 
