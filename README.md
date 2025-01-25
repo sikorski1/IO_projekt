@@ -94,7 +94,7 @@ sequenceDiagram
 
 ```
 
-## Projekt Architektury opracowanego systemugraph TD;
+## Projekt Architektury opracowanego systemu
 
 ```mermaid
 graph TD;
