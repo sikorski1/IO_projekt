@@ -309,3 +309,11 @@ Możemy podejrzeć dokumentacje kodu:
 Python
 
 Uzasadnienie: Python jest doskonałym wyborem dla projektu nagrywania i transkrypcji dzięki swojej wszechstronności oraz bogatemu ekosystemowi bibliotek do obsługi multimediów, takich jak pyaudio, opencv, czy integracji z FFmpeg. Jako lider w dziedzinie sztucznej inteligencji, Python pozwala na łatwą integrację z zaawansowanymi API do transkrypcji, np. OpenAI Whisper czy Google Speech-to-Text, co przyspiesza wdrożenie funkcji przetwarzania dźwięku. Jego prostota i czytelność umożliwiają szybkie prototypowanie i rozwój aplikacji, a wsparcie dla systemowych bibliotek, takich jak psutil, pozwala na monitorowanie aplikacji i procesów systemowych.
+
+
+## Odwołania do innych dokumentów
+
+Dodatkowe informacje znajdziesz w:
+
+* [Testing.md](https://github.com/sikorski1/IO_projekt/blob/docs/Testing.md) na temat testów manualnych naszej aplikacji.
+* [Instructions.md](https://github.com/sikorski1/IO_projekt/blob/docs/Instructions.md) na temat instrukcji jak uruchomić ten projekt.
