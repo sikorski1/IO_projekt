@@ -292,7 +292,6 @@ UI4 --> WR3
 
 ---
 
-
 ### **7. Udoskonalenia**
 
 * **Bezpieczeństwo plików:**
@@ -301,6 +300,15 @@ UI4 --> WR3
 * **Zgodność z różnymi ekranami:**
 
   * Zrzuty ekranu są dostosowywane do rozdzielczości 1920x1080.
+
+## Dokumentacja kodu
+
+Każda funkcja w naszym kodzie jest starannie udokumentowana. Poprzez uruchomienie w folderze recorder komendy:
+`python -m pydoc -p 1234` 
+
+Możemy podejrzeć dokumentacje kodu:
+
+<4zdjecia>
 
 ## Sugerowane języki implementacji
 
