@@ -308,7 +308,10 @@ Każda funkcja w naszym kodzie jest starannie udokumentowana. Poprzez uruchomien
 
 Możemy podejrzeć dokumentacje kodu:
 
-<4zdjecia>
+![doc1](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/code_doc1.png)
+![doc2](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/code_doc2.png)
+![doc3](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/code_doc3.png)
+![doc4](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/code_doc4.png)
 
 ## Sugerowane języki implementacji
 
