@@ -2,7 +2,6 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 import numpy as np
 import threading
-import queue
 import os
 from GUI.transcription import process_audio_file
 
@@ -113,14 +112,3 @@ def start_recording_audio(file_path_audio, stop_event, selected_language, transc
                 print("No audio data to save.")
 
     print("Recording stopped.")
-
-def stop_recording_audio(output_file=None):
-    """
-    Stops the audio recording.
-
-    :param output_file: Optional. If provided, the audio data will be saved to this file.
-    """
-    global recording
-
-    # Signal the recording thread to stop
-    stop_event.set()
