@@ -11,7 +11,6 @@ import numpy as np
 import queue
 from GUI.audio import start_recording_audio, init_transcription_queue, process_transcription_queue
 from GUI.transcription import process_audio_file
-from GUI.settings import Settings
 from GUI.more import More
 from GUI.setNames import SetNames
 from fpdf import FPDF
@@ -63,7 +62,6 @@ class ScreenRecorderGUI:
             command=lambda: self.set_names.open_set_name_window(self.calculate_window_pos),
         ) # Initialize a button to open the set name dialog window
         set_names_button.pack(side=tk.RIGHT, padx=5) # Pack the set names button into the settings frame
-        self.Settings = Settings(self.root, 100, True) # Initialize a class to manage settings
         self.set_names = SetNames(self.root) # Initialize a class to set the speakers name
 
         # More button
@@ -166,17 +164,6 @@ class ScreenRecorderGUI:
             command=lambda: self.More.open_more_window(self.calculate_window_pos),
         ) # Create a button to open more settings window
         more_button.pack(side=tk.LEFT)  # Pack the more button to the settings frame
-
-        # Settings Button
-        settings_button = ttk.Button(
-            settings_frame,
-            text="Settings",
-            bootstyle="light-outline",
-            command=lambda: self.Settings.open_settings_window(
-                self.calculate_window_pos
-            ),
-        ) # Create a button to open settings window
-        settings_button.pack(side=tk.RIGHT) # Pack settings button to the settings frame
 
     def calculate_window_pos(self, window_width, window_height):
         """
@@ -386,7 +373,7 @@ class ScreenRecorderGUI:
             file_path_whiteboard = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.jpeg") # set path of the screenshot for the whiteboard directory
 
             if i == 0 or (prev_frame is not None and self.compare_frames(prev_frame, frame)): # Compare frames after each screenshot
-                cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)])  # Save the screenshot to the whiteboard data folder
+                cv2.imwrite(file_path_whiteboard, frame, [cv2.IMWRITE_JPEG_QUALITY, 100])  # Save the screenshot to the whiteboard data folder
                 file_path_audio = os.path.join(os.getcwd(), "whiteboard_data", f"{name}_whiteboard.{i}.wav") # Set the file path for audio output
                 self.audio_output_file_path = file_path_audio # Assign audio path to class variable
                 
@@ -405,7 +392,7 @@ class ScreenRecorderGUI:
                 self.audio_thread.start()  # Start new audio segment
             
             prev_frame = frame.copy() # Copy current frame to previous frame variable for next comparison
-            cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, int(self.Settings.quality)]) # Save current screenshot in the data directory
+            cv2.imwrite(file_path, frame, [cv2.IMWRITE_JPEG_QUALITY, 100]) # Save current screenshot in the data directory
             time.sleep(2)
             i += 1  # increase the index by 1
 

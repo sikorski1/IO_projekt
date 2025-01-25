@@ -2,7 +2,6 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 import numpy as np
 import threading
-import queue
 import os
 from GUI.transcription import process_audio_file
 

@@ -22,7 +22,7 @@
 | **Jak aplikacja zapisuje wygenerowany PDF?**                        | Plik PDF jest zapisywany w tym samym katalogu co plik TXT, z tą samą nazwą i rozszerzeniem `.pdf`.        | Jeśli plik PDF już istnieje, zostanie nadpisany.                                                       |
 | **Czy aplikacja obsługuje różne formaty audio?**                 | Nie, aplikacja obsługuje tylko format WAV dla nagrywania i zapisu.                                            | Możesz rozszerzyć aplikację, dodając konwersję do innych formatów, np. MP3 przy użyciu `pydub`. |
 | **Jak działa GUI aplikacji?**                                      | GUI jest zbudowane za pomocą `tkinter` i rozszerzenia `ttkbootstrap`.                                     | Wszystkie operacje odbywają się w oknach głównych lub pomocniczych (`Toplevel`).                   |
-| **Czy aplikacja pozwala na edycję ustawień?**                     | Tak, ustawienia są obsługiwane w module `Settings` (np. jakość obrazu).                                  | Szczegóły ustawień są przechowywane w obiekcie klasy `Settings`.                                   |
+| **Czy aplikacja pozwala na edycję ustawień?**                     | Tak                                                                                                            | Możemy ustawić język trankrypcji oraz notatek.                                                        |
 | **Czy aplikacja obsługuje wielozadaniowość?**                    | Tak, funkcje takie jak nagrywanie i transkrypcja działają w oddzielnych wątkach.                            | Wątki są obsługiwane za pomocą modułu `threading`.                                                |
 | **Czy aplikacja umożliwia transkrypcję audio?**                   | Tak, kod sugeruje możliwość transkrypcji audio w module `transcription`.                                  | Funkcjonalność transkrypcji zależy od implementacji modułu `process_audio_file`.                   |
 | **Czy aplikacja automatycznie generuje pdf po nagraniu spotkania?** | Tak, aplikacja automatycznie generuje plik pdf z transkrypcją i slajdami w folderze meetings.                 | Plik ten dodawany jest w specjalnym folderze `meetings` z datą oraz godziną skończenia nagrywania   |
@@ -102,7 +102,6 @@ graph TD;
 subgraph Interfejs Użytkownika
     UI1[Panel Użytkownika]
     UI2[Przycisk Start/Stop]
-    UI3[Wybór opcji nagrywania]
     UI4[Przegląd wyników i raportów]
 end
 
@@ -127,7 +126,6 @@ end
 %% Połączenia logiczne
 UI1 --> UI2
 UI2 --> DN1
-UI3 --> DN2
 DN1 --> DN4
 DN4 --> PR1
 PR1 --> PR2
@@ -143,7 +141,6 @@ UI4 --> WR3
 
 ![more_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/more_gui.png)
 ![set_name_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/set_name_gui.png)
-![settings_gui](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/settings_gui.png)
 
 ### **1. Funkcja nagrywania**
 
@@ -240,12 +237,6 @@ UI4 --> WR3
 - Otwiera okno, w którym można przypisać nazwy mówców.
 - Umożliwia personalizację transkrypcji.
 
-#### **Settings**
-
-- Otwiera okno ustawień, gdzie użytkownik może dostosować:
-  - **Jakość nagrywania:** Procentowa jakość (100%, 90%, itd.).
-  - **Rozpoznawanie mówców:** Opcja włączania/wyłączania.
-
 #### **More**
 
 - Otwiera dodatkowe okno z zaawansowanymi funkcjami:
@@ -279,7 +270,7 @@ UI4 --> WR3
 ### **5. Status nagrywania**
 
 - **Wskaźnik statusu:**
-  - Aktualizowany co **200 ms**.
+  - Aktualizowany co 2 sekundy.
   - **Czerwony punkt:** Oznacza aktywne nagrywanie.
   - **Szary punkt:** Oznacza brak nagrywania.
 
@@ -304,7 +295,7 @@ UI4 --> WR3
 ## Dokumentacja kodu
 
 Każda funkcja w naszym kodzie jest starannie udokumentowana. Poprzez uruchomienie w folderze recorder komendy:
-`python -m pydoc -p 1234` 
+`python -m pydoc -p 1234`
 
 Możemy podejrzeć dokumentacje kodu:
 
