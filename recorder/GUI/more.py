@@ -37,7 +37,7 @@ class More:
         # Labels and buttons for txt to pdf conversion
         ttk.Label(self.more_window, text="Txt to pdf coverter", font=("Arial", 12)).pack(pady=5)
         ttk.Label(self.more_window, text="Select .txt file:", font=("Arial", 10)).pack(pady=10)
-        file_txt_path_button = tk.Button(self.more_window, text="Browse", command=self.select_txt_file, bg="blue", fg="white", width=15)
+        file_txt_path_button = ttk.Button(self.more_window, text="Browse", command=self.select_txt_file, bootstyle="danger", width=15)
         file_txt_path_button.pack(padx=5)
 
         # Label to display selected txt file path
@@ -54,7 +54,7 @@ class More:
         # Labels and buttons for pdf viewing
         ttk.Label(self.more_window, text="Open pdf", font=("Arial", 12)).pack(pady=5)
         ttk.Label(self.more_window, text="Select .pdf file:", font=("Arial", 10)).pack(pady=10)
-        file_pdf_path_button = tk.Button(self.more_window, text="Browse", command=self.select_pdf_file, bg="blue", fg="white", width=15)
+        file_pdf_path_button = ttk.Button(self.more_window, text="Browse", command=self.select_pdf_file, bootstyle="danger", width=15)
         file_pdf_path_button.pack(padx=5)
 
         # Label to display selected pdf file path
