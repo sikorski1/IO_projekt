@@ -27,4 +27,6 @@ Manualne testy, mimo tych ograniczeń, wciąż pozwalają nam na:
 
 Zdecydowaliśmy się nagrać video testujące funkcjonalności naszej aplikacji.
 
-### Linki:
+### Link do video z testami manualnymi oraz komentarzem:
+
+https://youtu.be/UWin1OANvwI

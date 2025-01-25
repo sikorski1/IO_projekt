@@ -1,51 +1,89 @@
-# How to install dependencies
+# Przewodnik konfiguracji nagrywania dźwięku
 
-## for macos:
+Jak skonfigurować zależności, urządzenia wejściowe i konfiguracje pętli zwrotnej wymagane do nagrywania dźwięku systemowego za pomocą Pythona.
 
-`brew install python-tk`
+---
 
-## for windows:
+## Instalacja zależności
 
- 0 Microsoft Sound Mapper - Input, MME (2 in, 0 out) -> we should use 2 in input for mme
+### MacOS:
 
-## for linux:
+```
+brew install python-tk
+brew install blackhole-2ch
+```
 
+### Windows:
+
+1. Otwórz Wiersz Poleceń jako Administrator.
+2. Zainstaluj wymagane zależności:
+   ```
+   uv pip install -r requirements.txt
+   ```
+3. Upewnij się, że masz skonfigurowany Microsoft Sound Mapper - Input (MME). Użyj wejścia `<span>2 in</span>` dla MME.
+
+### Linux:
+
+```
 sudo apt install gnome-screenshot
+```
 
-## for everyone:
+### Wspólne dla wszystkich:
 
-`uv pip install -r requirements.txt`
+```
+uv pip install -r requirements.txt
+```
 
-# Get input devices
+---
 
-``
+## Pobieranie urządzeń wejściowych
 
-what input device should i set there:
+Aby uzyskać listę urządzeń wejściowych, użyj poniższego kodu w Pythonie:
 
-`with sd.InputStream(samplerate=samplerate, channels=channels, callback=callback, device=4):` in order to get system audio?
+```
+import sounddevice as sd
+print(sd.query_devices())
+```
 
-# How to setup loopbacks in order to get audio
+Aby ustawić urządzenie wejściowe audio systemu, użyj odpowiedniego ID urządzenia:
 
-## Macos
+```
+with sd.InputStream(samplerate=samplerate, channels=channels, callback=callback, device=4):
+```
 
-In order to get a system volume from macos we need to install blackhole https://github.com/ExistentialAudio/BlackHole
+Zamień `<span>4</span>` na odpowiednie ID urządzenia z listy.
 
-Audio midi devices -> choose blackhole 2ch -> use this for sound output
+---
 
-`brew install blackhole-2ch`
+## Konfiguracja pętli zwrotnych do przechwytywania dźwięku systemowego
 
-https://github.com/ExistentialAudio/BlackHole/wiki/Multi-Output-Device
+### MacOS:
 
-## Linux
+1. Zainstaluj **BlackHole**:
+   * Postępuj zgodnie z instrukcjami tutaj: [https://github.com/ExistentialAudio/BlackHole]().
+   * Zainstaluj za pomocą Homebrew:
+     ```
+     brew install blackhole-2ch
+     ```
+2. Skonfiguruj BlackHole:
+   * Otwórz **Audio MIDI Setup**.
+   * Utwórz urządzenie Multi-Output z **BlackHole 2ch** jako jednym z wyjść.
+   * Ustaw to urządzenie Multi-Output jako wyjście dźwięku systemowego.
 
-todo
+Zapoznaj się z oficjalnym przewodnikiem: [BlackHole Multi-Output Device Setup](https://github.com/ExistentialAudio/BlackHole/wiki/Multi-Output-Device).
 
-## Windows
+### Windows:
 
-Todo
+*TODO: Dodaj konkretne instrukcje dotyczące konfiguracji pętli zwrotnej w systemie Windows.*
 
-## USE PYTHON 3.12.7
+### Linux:
 
-## RUN FROM RECORDER FOLDER
+*TODO: Dodaj konkretne instrukcje dotyczące konfiguracji pętli zwrotnej w systemie Linux.*
 
-## for WINDOWS IN ADMINISTRATOR
+---
+
+## Ważne informacje:
+
+1. **Wersja Pythona**: Upewnij się, że używasz wersji Python `<span>3.12.7</span>`.
+2. **Folder roboczy**: Zawsze uruchamiaj skrypt z folderu `<span>recorder</span>`.
+3. **Uprawnienia administratora**: W systemie Windows upewnij się, że uruchamiasz skrypt z uprawnieniami administratora.
