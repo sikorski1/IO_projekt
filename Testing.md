@@ -14,6 +14,8 @@ Zdecydowaliśmy się na manualne testowanie naszej aplikacji z dwóch głównych
 * **Zasoby Czasowe:** Napisanie pełnego zestawu testów jednostkowych dla naszej aplikacji wymagałoby znaczących nakładów czasu. W naszym 3-osobowym zespole, musielibyśmy odciągnąć zasoby od innych ważnych zadań, takich jak projektowanie, implementacja i debugowanie.
 * **Priorytety:** W obecnej fazie projektu, naszym priorytetem jest przede wszystkim dopracowanie funkcjonalności aplikacji i zapewnienie jej podstawowej użyteczności. Testy jednostkowe, choć ważne na dłuższą metę, nie są w tym momencie naszym głównym celem.
 
+### 3. Wielkość aplikacji
+
 ## Co Zyskujemy Dzięki Testom Manualnym?
 
 Manualne testy, mimo tych ograniczeń, wciąż pozwalają nam na:
