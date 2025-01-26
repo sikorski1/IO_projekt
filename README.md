@@ -304,7 +304,7 @@ Możemy podejrzeć dokumentacje kodu:
 ![doc3](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/code_doc3.png)
 ![doc4](https://raw.githubusercontent.com/sikorski1/IO_projekt/refs/heads/docs/photos/code_doc4.png)
 
-## Sugerowane języki implementacji
+## Języki implementacji
 
 Python
 
