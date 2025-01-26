@@ -18,7 +18,7 @@ brew install blackhole-2ch
 1. Otwórz Wiersz Poleceń jako Administrator.
 2. Zainstaluj wymagane zależności:
    ```
-   uv pip install -r requirements.txt
+   pip install -r requirements.txt
    ```
 3. Upewnij się, że masz skonfigurowany Microsoft Sound Mapper - Input (MME). Użyj wejścia `<span>2 in</span>` dla MME.
 
