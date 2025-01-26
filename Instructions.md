@@ -31,7 +31,7 @@ sudo apt install gnome-screenshot
 ### Wspólne dla wszystkich:
 
 ```
-uv pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ---
