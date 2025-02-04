@@ -18,7 +18,7 @@ brew install blackhole-2ch
 1. Otwórz Wiersz Poleceń jako Administrator.
 2. Zainstaluj wymagane zależności:
    ```
-   uv pip install -r requirements.txt
+   pip install -r requirements.txt
    ```
 3. Upewnij się, że masz skonfigurowany Microsoft Sound Mapper - Input (MME). Użyj wejścia `<span>2 in</span>` dla MME.
 
@@ -31,7 +31,7 @@ sudo apt install gnome-screenshot
 ### Wspólne dla wszystkich:
 
 ```
-uv pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ---
@@ -85,7 +85,17 @@ Zapoznaj się z oficjalnym przewodnikiem: [BlackHole Multi-Output Device Setup](
 
 ### Linux:
 
-*TODO: Dodaj konkretne instrukcje dotyczące konfiguracji pętli zwrotnej w systemie Linux.*
+* Uruchom w terminalu:
+   ```
+   pactl load-module module-null-sink sink_name=VirtualCable
+   pactl load-module module-loopback source=VirtualCable.monitor
+   ```
+   To utworzy urządzenie **VirtualCable**, które przechwytuje dźwięk systemowy.
+
+* Ustaw wyjście dźwięku na **VirtualCable**
+   * Otwórz **Pavucontrol** (jeśli nie masz, zainstaluj: ``` sudo apt install pavucontrol ```), a następnie:
+      * W zakładce Odtwarzanie ustaw **VirtualCable** jako wyjście.
+      * W zakładce Nagrywanie wybierz **Monitor of VirtualCable** jako źródło nagrywania.
 
 ---
 
