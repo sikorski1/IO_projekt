@@ -60,7 +60,7 @@ W poniższej tabeli opisano wszystkie przetestowane funkcjonalności oraz uwagi 
 | 2  | Otwieranie wygenerowanego pliku PDF | Plik otwierany w osobnym oknie. |
 | 3  | Ręczne przypisywanie nazw użytkownikom | Zmiany zapisują się poprawnie. |
 | 4  | Zmiana języka transkrypcji i notatek | Działa poprawnie, język zmienia się zgodnie z wyborem użytkownika. |
-| 5  | Nagrywanie spotkań i generowanie raportów | Działa poprawnie, zapisując transkrypcję oraz podział na speakerów. |
+| 5  | Nagrywanie spotkań i generowanie raportów | Działa poprawnie, zapisując transkrypcję oraz podział na speakerów(czasami speakerzy nie są dobrze wychwytywani). |
 | 6  | Obsługa błędów (np. brak wybranego pliku) | Działa poprawnie, wyświetlane są odpowiednie komunikaty. |
 | 7  | Automatyczne wykrywanie slajdów podczas nagrywania | Działa poprawnie, nowe slajdy są wykrywane na podstawie progu podobieństwa. |
 | 8  | Obsługa różnych formatów plików wejściowych | Obsługiwane są jedynie zgodne formaty plików, poprawna walidacja. |
