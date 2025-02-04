@@ -74,7 +74,14 @@ Zapoznaj się z oficjalnym przewodnikiem: [BlackHole Multi-Output Device Setup](
 
 ### Windows:
 
-*TODO: Dodaj konkretne instrukcje dotyczące konfiguracji pętli zwrotnej w systemie Windows.*
+* Otwórz stronę [VB-Audio Virtual Cable](https://vb-audio.com/Cable/index.htm)
+* Pobierz ostatnie wydanie na Windows
+* Rozpakuj pobrany folder .zip
+* Otwórz z folderu plik **VBCABLE_Setup_x64.exe** lub **VBCABLE_Setup.exe**
+* Zainstaluj sterownik
+* Zrestartuj komputer
+* W ustawieniach przejdź do sekcji **Sound**
+* Ustaw **output** na **CABLE Input** oraz **input** na **CABLE Output**
 
 ### Linux:
 
